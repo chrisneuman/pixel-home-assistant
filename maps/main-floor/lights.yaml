@@ -186,9 +186,10 @@ lights:
   - id: garage_front
     name: Garage front
     room: outside
-    entity: switch.outdoor1
+    always_on: true      # no switch: a solar/dusk sensor in the fixtures turns them on, so the map always shows them lit
+    note: Always on · solar sensor
     radius: 12
-    fixtures:            # one switch, two fixtures on either side of the garage door, each with an RGB bulb
+    fixtures:            # two fixtures on either side of the garage door, each with an RGB bulb
       - {x: 66.3, y: 77.8, color_entity: light.garage_front_rgb3, label: Left bulb}
       - {x: 100.2, y: 77.6, color_entity: light.garage_front_rgb4, label: Right bulb}
 

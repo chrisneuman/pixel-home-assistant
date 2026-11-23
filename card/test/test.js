@@ -49,6 +49,10 @@ srv.listen(0, async () => {
   calls = await p.evaluate('window.calls');
   ok(calls.at(-1)[2].entity_id === 'light.porch_rgb_2' && calls.at(-1)[1] === 'turn_on' && !calls.some(c => c[2].entity_id === 'switch.porch'), 'porch right bulb color -> light.porch_rgb_2 only: ' + JSON.stringify(calls.at(-1)));
   await p.screenshot({ path: `${OUT}/card-porch.png` });
+  ok(await sh('[data-light="garage_front"]').count() === 0 && /Always on/.test(await sh('.side').innerText()), 'garage front: always on, no switch');
+  await sh('[data-fxcolor="garage_front"][data-k="0"]').nth(3).click(); await p.waitForTimeout(300);
+  calls = await p.evaluate('window.calls');
+  ok(calls.at(-1)[2].entity_id === 'light.garage_front_rgb3' && !calls.some(c => /outdoor1/.test(c[2].entity_id)), 'garage left bulb color -> light.garage_front_rgb3 only');
   // garage door open 40 min -> alert banner
   await sh('#back').click(); await p.waitForTimeout(400);
   await p.evaluate(() => setState('cover.garage_door', { state: 'open', last_changed: new Date(Date.now() - 40 * 60000).toISOString() }));

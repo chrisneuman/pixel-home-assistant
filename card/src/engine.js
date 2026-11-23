@@ -21,7 +21,7 @@ const ctx = canvas.getContext('2d');
 const tiles = LAYOUT.tiles;
 // a light may drive several fixtures (e.g. two garage lanterns on one switch)
 const lights = CONFIG.lights.map((l, i) => ({
-  ...l, on: false, level: 0,
+  ...l, on: !!l.always_on, level: l.always_on ? 1 : 0,   // always_on: no switch in HA (e.g. a dusk sensor), it just glows
   fx: stripPoints(l) || (l.fixtures || [{ x: l.x, y: l.y }]).map((f, k) => ({ x: f.x, y: f.y, radius: f.radius || l.radius, phase: i * 1.7 + k * .9, color_entity: f.color_entity, label: f.label || `Bulb ${k + 1}` })),
   tint: l.color ? `rgb(${l.color})` : 'rgb(255,190,80)',
 }));
@@ -609,7 +609,7 @@ function deviceAt(x, y) {
   // on the overview a light's tap target is at least ~18 screen px across, so it works on a phone too
   const cellPx = canvas.getBoundingClientRect().width / W;
   let best = null, bd = overview ? Math.max(2, 9 / cellPx) : 2.6;
-  for (const l of lights) { if (!overview && devRoom(l) !== sel) continue; for (const f of l.fx) { const dd = Math.hypot(f.x - x, f.y - y); if (dd < bd) { bd = dd; best = { light: l }; } } }
+  for (const l of lights) { if (l.always_on || (!overview && devRoom(l) !== sel)) continue; for (const f of l.fx) { const dd = Math.hypot(f.x - x, f.y - y); if (dd < bd) { bd = dd; best = { light: l }; } } }
   if (best) return best;
   for (const c of covers) {
     if (overview && c.kind === 'garage') continue;      // never open the garage from a stray overview tap
@@ -626,7 +626,7 @@ canvas.addEventListener('pointerdown', ev => {
   press = { x, y, long: false, timer: null };
   if (!sel) press.timer = setTimeout(() => {           // long-press a room on the overview: toggle its lights
     const id = roomAt(x, y); if (!id) return;
-    const ls = inRoom(id).lights; if (!ls.length) return;
+    const ls = inRoom(id).lights.filter(l => !l.always_on); if (!ls.length) return;
     const any = ls.some(l => l.on); ls.forEach(l => { if (!l.na) { l.on = !any; act('light', l, !any); } });
     press.long = true; render();
     toast(`${ROOMS.find(r => r.id === id).name}: lights ${any ? 'off' : 'on'}`);
@@ -699,8 +699,8 @@ function roomPanel(id) {
   for (const l of d.lights) {
     const col = l.color ? `rgb(${l.color})` : '#ffd95a';
     rows.push(`<div class="dev${l.on ? ' on' : ''}${l.na ? ' na' : ''}">${ICON[l.strip ? 'strip' : 'bulb'].replaceAll('fill="C"', `fill="${l.on ? col : '#77708a'}"`)}
-      <div class="nm">${l.name}<small>${l.na ? 'Unavailable' : l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
-      <button class="sw" aria-label="${l.name}" aria-pressed="${l.on}" data-light="${l.id}"></button>
+      <div class="nm">${l.name}<small>${l.always_on ? (l.note || 'Always on') : l.na ? 'Unavailable' : l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
+      ${l.always_on ? '' : `<button class="sw" aria-label="${l.name}" aria-pressed="${l.on}" data-light="${l.id}"></button>`}
       ${l.fx.filter(f => f.color_entity).map((f, k) => `<div class="chips"><span class="clab">${f.label}</span>${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} ${f.label} color" aria-pressed="${hex(p) === hex(f.color || [])}" data-fxcolor="${l.id}" data-k="${l.fx.indexOf(f)}" data-v="${hex(p)}"></button>`).join('')}
         <input type="color" aria-label="${f.label} custom color" value="${hex(f.color || [255, 220, 90])}" data-fxpick="${l.id}" data-k="${l.fx.indexOf(f)}"></div>`).join('')}
       ${l.rgb ? `<div class="chips">${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} color" aria-pressed="${hex(p) === hex(l.color || [])}" data-color="${l.id}" data-v="${hex(p)}"></button>`).join('')}
@@ -762,8 +762,8 @@ const WEATHER = { rainy: 'rain', pouring: 'rain', 'lightning-rainy': 'storm', li
 function setStates(states, first) {
   const st = e => e && states[e];
   for (const l of lights) {
-    const s = st(l.entity); l.na = !s || s.state === 'unavailable';
-    l.on = !!s && s.state === 'on';
+    const s = st(l.entity); l.na = !l.always_on && (!s || s.state === 'unavailable');
+    l.on = l.always_on || (!!s && s.state === 'on');
     const rgb = s && s.attributes && s.attributes.rgb_color; if (rgb && l.rgb) { l.color = rgb; l.tint = `rgb(${rgb})`; }
     for (const f of l.fx) { const c = f.color_entity && st(f.color_entity); const v = c && c.attributes && c.attributes.rgb_color; if (v) { f.color = v; f.tint = `rgb(${v})`; } }
     if (first) l.level = l.on ? 1 : 0;
