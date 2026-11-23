@@ -85,12 +85,13 @@ lights:
     radius: 14
 
   - id: master_closet
-    name: Master closet
+    name: Master closet strip
     room: master_closet
     entity: light.master_closet
-    x: 6.1
-    y: 16.6
-    radius: 16
+    rgb: true
+    color: [255, 170, 90]
+    strip: {x0: 5.4, y0: 5.8, x1: 5.4, y1: 30.2}
+    radius: 5
 
   - id: master_bath
     name: Master bath
