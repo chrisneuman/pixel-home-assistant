@@ -784,7 +784,7 @@ return api;
 //   type: custom:pixel-house-card
 //   floor: main                  # optional, the only floor so far
 //   entities: {kitchen: switch.kitchen_light}   # optional per-device overrides by map id
-const CARD_VERSION = '1770387-dirty';
+const CARD_VERSION = '0.1.0';  // from VERSION
 
 function loadFont() {
   if (document.getElementById('pixel-house-font')) return;

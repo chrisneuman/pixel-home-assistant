@@ -2,7 +2,7 @@
 
     python3 card/build.py        # needs PyYAML
 """
-import base64, json, os, subprocess, yaml
+import base64, json, os, yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'card', 'src')
@@ -17,10 +17,7 @@ def floor(name):
     }
 
 def version():
-    try:
-        return subprocess.check_output(['git', '-C', ROOT, 'describe', '--tags', '--always', '--dirty'], text=True).strip()
-    except Exception:
-        return 'dev'
+    return rd(ROOT, 'VERSION').strip()
 
 engine = rd(SRC, 'engine.js').replace('export function mountHouse', 'function mountHouse', 1)
 css, markup = rd(SRC, 'style.css'), rd(SRC, 'markup.html')
