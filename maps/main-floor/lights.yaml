@@ -1,8 +1,8 @@
 # Main floor lights, traced from the white dots on the Floorplanner export.
 # x / y are map cells (or a `fixtures` list of x/y when one entity drives several fixtures,
 #   or `strip: {x0, y0, x1, y1}` for an LED strip; `rgb: true` strips glow in their color) (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
-# entity: placeholder Home Assistant ids. Replace each with the real one
-#   (Settings > Devices & services > Entities, or Developer tools > States).
+# entity: the real Home Assistant entity (light.*, switch.* or fan.*; covers are cover.*), confirmed with chris 2026-11-23.
+#   The card's `entities:` option can override any of them by id without editing this file.
 # radius: how far the glow reaches, in cells. Glow never passes through walls or closed doors.
 
 floor: main
@@ -27,7 +27,7 @@ lights:
   - id: dining
     name: Dining room
     room: dining
-    entity: light.dining_room
+    entity: switch.dining_room_light
     x: 68.0
     y: 14.0
     radius: 16
@@ -36,7 +36,7 @@ lights:
   - id: kitchen
     name: Kitchen
     room: kitchen
-    entity: light.kitchen
+    entity: switch.kitchen_light
     x: 94.9
     y: 15.0
     radius: 22
@@ -44,7 +44,7 @@ lights:
   - id: kitchen_counter
     name: Kitchen counter
     room: kitchen
-    entity: light.kitchen_counter
+    entity: light.counter_light
     x: 84.6
     y: 10.3
     radius: 12
@@ -53,7 +53,7 @@ lights:
   - id: kitchen_sink
     name: Kitchen sink
     room: kitchen
-    entity: light.kitchen_sink
+    entity: light.sink_light
     x: 93.5
     y: 6.7
     radius: 10
@@ -61,7 +61,7 @@ lights:
   - id: upper_cabinet
     name: Upper cabinet strip
     room: kitchen
-    entity: light.upper_cabinet
+    entity: light.kitchen_cabinet
     rgb: true
     color: [120, 200, 255]   # preview color; in HA the strip's real color is used
     strip: {x0: 102.4, y0: 9.8, x1: 102.4, y1: 21.6}
@@ -70,7 +70,7 @@ lights:
   - id: hall_accent
     name: Hall accent strip
     room: hall
-    entity: light.hall_accent
+    entity: light.trim_light
     rgb: true
     color: [190, 110, 255]
     strip: {x0: 34.2, y0: 40.6, x1: 49.6, y1: 40.6}
@@ -79,7 +79,7 @@ lights:
   - id: entry
     name: Entry
     room: hall
-    entity: light.entry
+    entity: switch.foyer_light
     x: 56.0
     y: 47.9
     radius: 18
@@ -87,7 +87,7 @@ lights:
   - id: hall
     name: Hallway
     room: hall
-    entity: light.hallway
+    entity: switch.hall_light
     x: 29.7
     y: 47.3
     radius: 14
@@ -95,7 +95,7 @@ lights:
   - id: master_closet
     name: Master closet strip
     room: master_closet
-    entity: light.master_closet
+    entity: light.master_closet_light_2
     rgb: true
     color: [255, 170, 90]
     strip: {x0: 5.4, y0: 5.8, x1: 5.4, y1: 30.2}
@@ -104,7 +104,7 @@ lights:
   - id: master_bath
     name: Master bath
     room: master_bath
-    entity: light.master_bath
+    entity: switch.switch_3
     x: 12.6
     y: 36.3
     radius: 14
@@ -112,7 +112,7 @@ lights:
   - id: main_bath
     name: Main bath
     room: main_bath
-    entity: light.main_bath
+    entity: switch.switch_2
     x: 13.0
     y: 46.0
     radius: 14
@@ -120,7 +120,7 @@ lights:
   - id: m_bedroom
     name: M bedroom
     room: m_bedroom
-    entity: light.m_bedroom
+    entity: light.m_bedroom_light
     x: 41.1
     y: 59.4
     radius: 22
@@ -128,7 +128,7 @@ lights:
   - id: mud_room
     name: Mud room
     room: mud_room
-    entity: light.mud_room
+    entity: switch.back_hall_light
     x: 97.6
     y: 29.5
     radius: 18
@@ -136,7 +136,7 @@ lights:
   - id: garage
     name: Garage
     room: garage
-    entity: light.garage
+    entity: switch.work_lights_on_off
     x: 81.7
     y: 52.7
     radius: 32
@@ -144,16 +144,24 @@ lights:
   - id: porch
     name: Porch lights
     room: porch
-    entity: light.porch
+    entity: switch.porch
     radius: 18
     fixtures:            # one entity, two fixtures
       - {x: 52.5, y: 63.4}
       - {x: 59.6, y: 63.4}
 
+  - id: castle_lights
+    name: Castle lights
+    room: m_bedroom
+    entity: switch.third_reality_inc_3rsp02028bz
+    color: [255, 214, 150]   # warm fairy lights along the castle bed's towers
+    strip: {x0: 41.2, y0: 49.8, x1: 49.4, y1: 49.8}
+    radius: 7
+
   - id: master_fan_light
     name: Master fan light
     room: master
-    entity: light.master_fan
+    entity: light.master_bedroom_master_bedroom_fan_light
     x: 19.7
     y: 16.8
     radius: 26
@@ -161,7 +169,7 @@ lights:
   - id: g_room_fan_light
     name: G room fan light
     room: g_room
-    entity: light.g_room_fan
+    entity: light.ceiling_fan_light
     x: 17.0
     y: 61.0
     radius: 22
@@ -169,7 +177,7 @@ lights:
   - id: back_door
     name: Back exterior
     room: outside
-    entity: light.back_exterior
+    entity: switch.switch
     x: 79.4
     y: 3.4
     radius: 12
@@ -177,7 +185,7 @@ lights:
   - id: garage_front
     name: Garage front
     room: outside
-    entity: light.garage_front
+    entity: switch.outdoor1
     radius: 12
     fixtures:            # one entity, two fixtures on either side of the garage door
       - {x: 66.3, y: 77.8}
@@ -188,7 +196,7 @@ covers:
   - id: living_blinds
     name: Living room blinds
     room: living
-    entity: cover.living_room_blinds
+    entity: cover.cellular_shade_radio_z_wave
     row: 4
     c0: 40
     c1: 50
@@ -196,7 +204,7 @@ covers:
   - id: m_bedroom_blinds
     name: M bedroom blinds
     room: m_bedroom
-    entity: cover.m_bedroom_blinds
+    entity: cover.m_bedroom_blinds_cover
     row: 69
     c0: 38
     c1: 44
@@ -204,7 +212,7 @@ covers:
   - id: g_room_blinds
     name: G room blinds
     room: g_room
-    entity: cover.g_room_blinds
+    entity: cover.g_bedroom_blinds_window_covering
     row: 69
     c0: 14
     c1: 19
@@ -212,7 +220,7 @@ covers:
   - id: master_blinds
     name: Master blinds
     room: master
-    entity: cover.master_blinds
+    entity: cover.master_blinds_cover
     row: 4
     c0: 18
     c1: 25
@@ -235,14 +243,14 @@ fans:
   - id: master_fan
     name: Master fan
     room: master
-    entity: fan.master
+    entity: fan.master_bedroom_master_bedroom_fan_fan
     x: 19.7
     y: 16.8
     blade: [70, 52, 44]
   - id: g_room_fan
     name: G room fan
     room: g_room
-    entity: fan.g_room
+    entity: fan.ceiling_fan
     x: 17.0
     y: 61.0
     blade: [196, 182, 170]

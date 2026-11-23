@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0;background:#111;padding:8px}</style></head>
+<body>
+<pixel-house-card id="card"></pixel-house-card>
+<script type="module">
+// A fake Home Assistant: the card gets `hass` objects, and callService changes state like HA would.
+import '../../dist/pixel-house-card.js';
+const states = await (await fetch('./states.json')).json();
+for (const [id, s] of Object.entries(states)) s.entity_id = id;
+const calls = window.calls = [];
+const card = document.getElementById('card');
+const push = () => { card.hass = { states: { ...states }, callService }; };
+async function callService(domain, service, data) {
+  calls.push([domain, service, data]);
+  const id = data.entity_id, s = states[id];
+  if (!s || s.state === 'unavailable') return;
+  const next = { ...s, attributes: { ...s.attributes }, last_changed: new Date().toISOString() };
+  if (service === 'turn_on') next.state = 'on';
+  if (service === 'turn_off') next.state = 'off';
+  if (service === 'open_cover') next.state = 'open';
+  if (service === 'close_cover') next.state = 'closed';
+  if (data.rgb_color) next.attributes.rgb_color = data.rgb_color;
+  states[id] = next;
+  setTimeout(push, 150);                          // HA's state echo arrives a moment later
+}
+window.setState = (id, patch) => { states[id] = { ...states[id], ...patch }; push(); };
+card.setConfig({ type: 'custom:pixel-house-card' });
+push();
+window.ready = true;
+</script>
+</body></html>

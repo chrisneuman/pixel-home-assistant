@@ -1,85 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Main floor map preview</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
-<style>
-/* VOICE: a cozy 16-bit game menu for the house. IDEA: the map is the overworld; tapping a room opens its inventory.
-   PICTURE: the live pixel map, zooming into the chosen room. COLOUR/TYPE: night purple UI, warm lamp yellow accent, Pixelify Sans headings.
-   LAYOUT: phone = map on top, controls below; desktop = map left, panel right. */
-:root{color-scheme:dark;--bg:#1b1724;--panel:#251f31;--ink:#f2ead8;--dim:#a99fba;--edge:#120e18;--btn:#3a2f48;--on:#ffd95a;--onink:#2a1f08}
-*{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:clip}
-.app{max-width:1240px;margin:0 auto;padding:10px;display:grid;gap:12px}
-@media(min-width:900px){.app{grid-template-columns:minmax(0,1fr) 340px;align-items:start;padding:16px}.side{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}}
-h1,h2{font-family:"Pixelify Sans",ui-monospace,monospace;font-weight:700;margin:0;line-height:1.1}
-h1{font-size:22px}h2{font-size:24px}
-.stage{position:relative;border:4px solid var(--edge);background:#0c0a12;overflow:hidden;line-height:0;aspect-ratio:888/704;touch-action:manipulation}
-.stage canvas{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;image-rendering:pixelated;image-rendering:crisp-edges;transition:transform .38s cubic-bezier(.2,.8,.2,1);cursor:pointer}
-@media(prefers-reduced-motion:reduce){.stage canvas{transition:none}}
-.crumb{position:absolute;left:8px;top:8px;line-height:1.2;display:none}
-.crumb button{min-height:40px;padding:6px 12px;font-size:15px}
-.hint{position:absolute;right:8px;bottom:8px;line-height:1.2;font-size:13px;background:rgba(18,14,24,.85);padding:4px 8px;border:2px solid #4b3d5c;color:var(--dim);pointer-events:none}
-.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);line-height:1.2;background:var(--edge);color:var(--on);border:2px solid #4b3d5c;padding:6px 10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
-.side{background:var(--panel);border:4px solid var(--edge);padding:14px}
-.top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
-.sub{color:var(--dim);font-size:14px;margin-top:2px}
-button{font:inherit;color:var(--ink);background:var(--btn);border:2px solid var(--edge);box-shadow:inset 0 -3px 0 #241d2e;padding:8px 14px;cursor:pointer;min-height:44px}
-button:active{transform:translateY(1px);box-shadow:none}
-button:focus-visible,input:focus-visible{outline:3px solid var(--on);outline-offset:2px}
-.list{display:grid;gap:8px}
-.rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-.rooms .room{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:64px}
-.room{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;min-height:52px}
-.room .st{color:var(--dim);font-size:14px;white-space:nowrap}
-.room.lit .st{color:var(--on)}
-.dev{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;background:#2e263c;border:2px solid var(--edge);padding:8px 10px;min-height:60px}
-.dev .nm{font-weight:600;line-height:1.2}
-.dev .nm small{display:block;color:var(--dim);font-weight:400;font-size:13px;margin-top:2px}
-.dev.on .nm small{color:var(--on)}
-.ico{width:32px;height:32px;image-rendering:pixelated}
-.sw{width:64px;height:36px;padding:0;position:relative;background:#120e18;box-shadow:none;border:2px solid #4b3d5c}
-.sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;background:#77708a;transition:left .15s,background .15s}
-.sw[aria-pressed=true]{background:#5a4a14;border-color:var(--on)}
-.sw[aria-pressed=true]::after{left:32px;background:var(--on)}
-.seg{display:flex;gap:6px}.seg button{min-width:64px;padding:8px 10px}
-.seg button[aria-pressed=true]{background:var(--on);color:var(--onink);border-color:var(--edge)}
-.chips{grid-column:2/4;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
-.chip{width:36px;height:36px;min-height:0;padding:0;border:2px solid var(--edge)}
-.chip[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:1px}
-input[type=color]{width:44px;height:36px;padding:0;border:2px solid var(--edge);background:none}
-.row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-.row2 label{display:inline-flex;gap:8px;align-items:center;color:var(--dim);font-size:14px}
-.note{color:var(--dim);font-size:13px;margin-top:12px}
-.alert{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#5a1c26;border:2px solid #ff4a5a;padding:6px 10px;margin-bottom:12px;font-weight:600;animation:pulse 1s steps(2) infinite}
-.room.warn,.dev.warn{border-color:#ff4a5a}.room.warn .st{color:#ff8a94}
-.mini{min-height:36px;padding:4px 10px;font-size:13px;color:var(--dim)}
-@keyframes pulse{50%{background:#3a1420}}
-@media(prefers-reduced-motion:reduce){.alert{animation:none}}
-.empty{color:var(--dim);font-size:14px;padding:8px 0}
-</style>
-</head>
-<body>
-<div class="app">
-  <div class="stage" id="stage">
-    <canvas id="c"></canvas>
-    <div class="crumb" id="crumb"><button id="back">&lsaquo; Whole house</button></div>
-    <div class="hint" id="hint">Tap a room</div>
-    <div class="toast" id="toast"></div>
-  </div>
-  <aside class="side" id="side" aria-live="polite"></aside>
-</div>
-<script>
-const LAYOUT = /*LAYOUT*/null;
-const CONFIG = /*CONFIG*/null;
-const MAP_SRC = "/*MAP*/";
+// Pixel house engine: the map renderer + room UI, shared by the HA card and the offline preview.
+// mountHouse(root, {CONFIG, LAYOUT, MAP_SRC}, bridge) draws into `root` (a shadow root).
+// bridge: { demo, startRoom, init(api), call(domain, service, data), onRoom(id) }
+export function mountHouse(root, { CONFIG, LAYOUT, MAP_SRC }, bridge = {}) {
+const $id = id => root.querySelector('#' + id);
+let stopped = false;
+function act(kind, dev, on, extra) {                    // a user action: ask HA to do it
+  if (!bridge.call || !dev.entity) return;
+  const [domain] = dev.entity.split('.');
+  if (kind === 'cover') return bridge.call('cover', on ? 'open_cover' : 'close_cover', { entity_id: dev.entity });
+  bridge.call(domain, on ? 'turn_on' : 'turn_off', { entity_id: dev.entity, ...(on && extra && domain === 'light' ? extra : {}) });
+}
+
 
 const CELL = LAYOUT.cell_px, W = LAYOUT.width, H = LAYOUT.height;
 const PW = W * CELL, PH = H * CELL;
-const canvas = document.getElementById('c');
+const canvas = $id('c');
 canvas.width = PW; canvas.height = PH;
 const ctx = canvas.getContext('2d');
 const tiles = LAYOUT.tiles;
@@ -168,7 +103,7 @@ function maskedLight(l, alpha, flick, tint) {
 
 // ---- sky: ambient light from the sun's elevation (HA: sun.sun attributes.elevation)
 const SKY = CONFIG.sky || {};
-let clockMode = 'live', clockHour = 21, weather = 'clear';
+let clockMode = 'live', clockHour = 21, weather = 'clear', liveElev = null;
 function sunElevation(d, lat, lon) {                      // NOAA approximation, good to ~0.5 degrees
   const rad = Math.PI / 180, day = (d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5;
   const g = 2 * Math.PI / 365 * day;
@@ -181,6 +116,7 @@ function sunElevation(d, lat, lon) {                      // NOAA approximation,
 function skyNow() {
   const d = new Date();
   if (clockMode !== 'live') d.setHours(Math.floor(clockHour), Math.round(clockHour % 1 * 60), 0, 0);
+  if (clockMode === 'live' && liveElev !== null) return { date: d, elev: liveElev };
   return { date: d, elev: sunElevation(d, SKY.latitude ?? 39, SKY.longitude ?? -94.6) };
 }
 // elevation -> ambient tint. Night navy, blue hour, sunset orange, clear day.
@@ -192,7 +128,7 @@ function ambient(elev) {
   const t = a === b ? 0 : (elev - a[0]) / (b[0] - a[0]);
   let col = a[1].map((v, k) => Math.round(v + (b[1][k] - v) * t)), alpha = a[2] + (b[2] - a[2]) * t;
   if (weather !== 'clear') {                               // overcast: greyer, a bit darker
-    const m = weather === 'storm' ? .6 : .45, grey = weather === 'snow' ? [150, 160, 182] : [60, 70, 92];
+    const m = (weather === 'storm' ? .6 : .45) * (1 - .7 * Math.min(1, alpha / .55)), grey = weather === 'snow' ? [150, 160, 182] : [60, 70, 92];
     col = col.map((v, k) => Math.round(v * (1 - m) + grey[k] * m)); alpha = Math.max(alpha, weather === 'storm' ? .34 : weather === 'snow' ? .18 : .24);
   }
   return { col, alpha, night: Math.min(1, alpha / .55) };
@@ -534,7 +470,7 @@ function frame(now) {
   // repaint every frame while fading, ~12 fps for idle motion (chunky, retro)
   if (animating || (anyOn && now - lastPaint > 80) || now - lastPaint > 1000) { paint(now, now - lastPaint); lastPaint = now; }
   if (now - lastClock > 30000) { lastClock = now; if (!sel) { const st = side.querySelector('#skyst'); if (st) st.textContent = skyText(); } garageDoors.forEach(g => { if (!g.closed) render(); }); }
-  requestAnimationFrame(frame);
+  if (!stopped) raf = requestAnimationFrame(frame);
 }
 
 function paint(now, dt = 16) {
@@ -637,7 +573,7 @@ function buildFocus(id) {                 // dims everything outside the chosen 
 }
 
 // ---- camera: CSS transform on the canvas keeps pixels crisp
-const stage = document.getElementById('stage');
+const stage = $id('stage');
 function applyCamera() {
   if (!sel || sel === 'outside') { canvas.style.transform = 'none'; return; }   // outside wraps the whole house: show it all
   const [x0, y0, x1, y1] = roomBox(sel);
@@ -650,12 +586,12 @@ function applyCamera() {
 new ResizeObserver(applyCamera).observe(stage);
 function openRoom(id) {
   sel = id; focusMask = id ? buildFocus(id) : null;
-  document.getElementById('crumb').style.display = id ? 'block' : 'none';
-  document.getElementById('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a light to toggle it, or a room to open it';
+  $id('crumb').style.display = id ? 'block' : 'none';
+  $id('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a light to toggle it, or a room to open it';
   applyCamera(); render(); paint(performance.now());
-  try { history.replaceState(null, '', id ? '#' + id.replace(/_/g, '-') : location.pathname); } catch (e) {}
+  bridge.onRoom?.(id);
 }
-document.getElementById('back').onclick = () => openRoom(null);
+$id('back').onclick = () => openRoom(null);
 
 // ---- canvas input
 function cellOf(ev) {
@@ -682,7 +618,7 @@ function deviceAt(x, y) {
   return null;
 }
 let press = null;
-const toastEl = document.getElementById('toast');
+const toastEl = $id('toast');
 function toast(t) { toastEl.textContent = t; toastEl.style.opacity = 1; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.style.opacity = 0, 1400); }
 canvas.addEventListener('pointerdown', ev => {
   const [x, y] = cellOf(ev);
@@ -690,7 +626,7 @@ canvas.addEventListener('pointerdown', ev => {
   if (!sel) press.timer = setTimeout(() => {           // long-press a room on the overview: toggle its lights
     const id = roomAt(x, y); if (!id) return;
     const ls = inRoom(id).lights; if (!ls.length) return;
-    const any = ls.some(l => l.on); ls.forEach(l => l.on = !any);
+    const any = ls.some(l => l.on); ls.forEach(l => { if (!l.na) { l.on = !any; act('light', l, !any); } });
     press.long = true; render();
     toast(`${ROOMS.find(r => r.id === id).name}: lights ${any ? 'off' : 'on'}`);
     if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
@@ -703,7 +639,8 @@ canvas.addEventListener('pointerup', ev => {
   const [x, y] = cellOf(ev); press = null;
   const d = deviceAt(x, y);
   if (d) {
-    if (d.light) d.light.on = !d.light.on; if (d.fan) d.fan.on = !d.fan.on; if (d.cover) setCover(d.cover, !d.cover.closed);
+    const it = d.light || d.fan || d.cover; if (it.na) { toast(`${it.name} is unavailable`); return; }
+    if (d.light) { d.light.on = !d.light.on; act('light', d.light, d.light.on); } if (d.fan) { d.fan.on = !d.fan.on; act('fan', d.fan, d.fan.on); } if (d.cover) { setCover(d.cover, !d.cover.closed); act('cover', d.cover, !d.cover.closed); }
     render();
     if (!sel) { const it = d.light || d.cover; toast(`${it.name}: ${d.light ? (it.on ? 'on' : 'off') : it.closed ? 'closed' : 'open'}`); }
     return;
@@ -725,7 +662,7 @@ const ICON = {
 };
 const PRESETS = [[255, 190, 90], [255, 90, 120], [190, 110, 255], [90, 150, 255], [90, 230, 190], [250, 250, 240]];
 const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
-const side = document.getElementById('side');
+const side = $id('side');
 function countOn(id) { const d = inRoom(id); return d.lights.filter(l => l.on).length + d.fans.filter(f => f.on).length; }
 function render() {
   side.innerHTML = sel ? roomPanel(sel) : housePanel();
@@ -744,11 +681,11 @@ function housePanel() {
   return `${alerts}<div class="top"><div><h1>Main floor</h1><div class="sub">${on} of ${lights.length} lights on · <span id="skyst">${skyText()}</span></div></div>
 </div>
     <div class="list rooms">${rows}</div>
-    <div class="row2"><label>Time <input id="clock" type="range" min="0" max="24" step="0.25" value="${clockMode === 'live' ? nowHour() : clockHour}"></label>
+    ${bridge.demo ? `<div class="row2"><label>Time <input id="clock" type="range" min="0" max="24" step="0.25" value="${clockMode === 'live' ? nowHour() : clockHour}"></label>
     <button id="live" aria-pressed="${clockMode === 'live'}">Live</button></div>
     <div class="row2"><div class="seg">${['clear', 'rain', 'storm', 'snow'].map(w => `<button aria-pressed="${weather === w}" data-weather="${w}">${w[0].toUpperCase() + w.slice(1)}</button>`).join('')}</div>
     <label><input id="labels" type="checkbox" ${showLabels ? 'checked' : ''}> Labels</label></div>
-    <div class="note">Preview with sample state. In Home Assistant each control reads and sets the real device, the light follows sun.sun and rain and snow follow your weather entity.</div>`;
+    <div class="note">Preview with sample state. In Home Assistant each control reads and sets the real device, the light follows sun.sun and rain and snow follow your weather entity.</div>` : ''}`;
 }
 const nowHour = () => { const d = new Date(); return Math.round((d.getHours() + d.getMinutes() / 60) * 4) / 4; };
 function skyText() {
@@ -760,22 +697,22 @@ function roomPanel(id) {
   const rows = [];
   for (const l of d.lights) {
     const col = l.color ? `rgb(${l.color})` : '#ffd95a';
-    rows.push(`<div class="dev${l.on ? ' on' : ''}">${ICON[l.strip ? 'strip' : 'bulb'].replaceAll('fill="C"', `fill="${l.on ? col : '#77708a'}"`)}
-      <div class="nm">${l.name}<small>${l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
+    rows.push(`<div class="dev${l.on ? ' on' : ''}${l.na ? ' na' : ''}">${ICON[l.strip ? 'strip' : 'bulb'].replaceAll('fill="C"', `fill="${l.on ? col : '#77708a'}"`)}
+      <div class="nm">${l.name}<small>${l.na ? 'Unavailable' : l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
       <button class="sw" aria-label="${l.name}" aria-pressed="${l.on}" data-light="${l.id}"></button>
       ${l.rgb ? `<div class="chips">${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} color" aria-pressed="${hex(p) === hex(l.color || [])}" data-color="${l.id}" data-v="${hex(p)}"></button>`).join('')}
         <input type="color" aria-label="Custom color" value="${hex(l.color || [255, 220, 90])}" data-pick="${l.id}"></div>` : ''}
     </div>`);
   }
-  for (const f of d.fans) rows.push(`<div class="dev${f.on ? ' on' : ''}">${ICON.fan.replaceAll('fill="C"', `fill="${f.on ? '#ffd95a' : '#77708a'}"`)}
-      <div class="nm">${f.name}<small>${f.on ? 'Spinning' : 'Off'}</small></div>
+  for (const f of d.fans) rows.push(`<div class="dev${f.on ? ' on' : ''}${f.na ? ' na' : ''}">${ICON.fan.replaceAll('fill="C"', `fill="${f.on ? '#ffd95a' : '#77708a'}"`)}
+      <div class="nm">${f.name}<small>${f.na ? 'Unavailable' : f.on ? 'Spinning' : 'Off'}</small></div>
       <button class="sw" aria-label="${f.name}" aria-pressed="${f.on}" data-fan="${f.id}"></button></div>`);
-  for (const c of d.covers.filter(c => c.kind === 'garage')) rows.push(`<div class="dev${c.closed ? '' : ' on'}${garageAlert(c) ? ' warn' : ''}">${ICON.garage.replace('height="H"', `height="${c.closed ? 7 : 2}"`)}
-      <div class="nm">${c.name}<small>${c.closed ? 'Closed' : `Open · ${openMins(c)} min${garageAlert(c) ? ' · close it?' : ''}`}</small></div>
+  for (const c of d.covers.filter(c => c.kind === 'garage')) rows.push(`<div class="dev${c.closed ? '' : ' on'}${garageAlert(c) ? ' warn' : ''}${c.na ? ' na' : ''}">${ICON.garage.replace('height="H"', `height="${c.closed ? 7 : 2}"`)}
+      <div class="nm">${c.name}<small>${c.na ? 'Unavailable' : c.closed ? 'Closed' : `Open · ${openMins(c)} min${garageAlert(c) ? ' · close it?' : ''}`}</small></div>
       <div class="seg"><button aria-pressed="${!c.closed}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.closed}" data-cover="${c.id}" data-v="close">Close</button></div>
-      ${!c.closed && !garageAlert(c) ? `<div class="chips"><button class="mini" data-skip="${c.id}">Preview: skip ahead ${c.alert_after_min ?? 35} min</button></div>` : ''}</div>`);
-  for (const c of d.covers.filter(c => c.kind !== 'garage')) rows.push(`<div class="dev">${ICON.blinds.replace('height="H"', `height="${c.closed ? 8 : 1}"`).replaceAll('opacity="O"', `opacity="${c.closed ? 1 : 0}"`)}
-      <div class="nm">${c.name}<small>${c.closed ? 'Closed' : 'Open'}</small></div>
+      ${bridge.demo && !c.closed && !garageAlert(c) ? `<div class="chips"><button class="mini" data-skip="${c.id}">Preview: skip ahead ${c.alert_after_min ?? 35} min</button></div>` : ''}</div>`);
+  for (const c of d.covers.filter(c => c.kind !== 'garage')) rows.push(`<div class="dev${c.na ? ' na' : ''}">${ICON.blinds.replace('height="H"', `height="${c.closed ? 8 : 1}"`).replaceAll('opacity="O"', `opacity="${c.closed ? 1 : 0}"`)}
+      <div class="nm">${c.name}<small>${c.na ? 'Unavailable' : c.closed ? 'Closed' : 'Open'}</small></div>
       <div class="seg"><button aria-pressed="${!c.closed}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.closed}" data-cover="${c.id}" data-v="close">Close</button></div></div>`);
   return `<div class="top"><div><h2>${r.name}</h2><div class="sub">${[k ? k + ' on' : '', ...d.covers.filter(c => c.kind === 'garage' && !c.closed).map(c => c.name + ' open')].filter(Boolean).join(' · ') || 'Everything off'}</div></div>
 </div>
@@ -788,35 +725,53 @@ function setCover(c, closed) {
 function bindPanel() {
   const $ = q => side.querySelectorAll(q);
   $('[data-room]').forEach(b => b.onclick = () => openRoom(b.dataset.room));
-  $('[data-light]').forEach(b => b.onclick = () => { const l = lights.find(x => x.id === b.dataset.light); l.on = !l.on; render(); });
-  $('[data-fan]').forEach(b => b.onclick = () => { const f = fans.find(x => x.id === b.dataset.fan); f.on = !f.on; render(); });
-  $('[data-cover]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.cover); setCover(c, b.dataset.v === 'close'); render(); });
+  $('[data-light]').forEach(b => b.onclick = () => { const l = lights.find(x => x.id === b.dataset.light); l.on = !l.on; act('light', l, l.on); render(); });
+  $('[data-fan]').forEach(b => b.onclick = () => { const f = fans.find(x => x.id === b.dataset.fan); f.on = !f.on; act('fan', f, f.on); render(); });
+  $('[data-cover]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.cover); setCover(c, b.dataset.v === 'close'); act('cover', c, b.dataset.v !== 'close'); render(); });
   $('[data-skip]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.skip); c.openSince -= (c.alert_after_min ?? 35) * 60000; render(); });
   $('[data-weather]').forEach(b => b.onclick = () => { weather = b.dataset.weather; render(); });
   const ck = side.querySelector('#clock'); if (ck) ck.oninput = e => { clockMode = 'set'; clockHour = +e.target.value; side.querySelector('#skyst').textContent = skyText(); side.querySelector('#live').setAttribute('aria-pressed', 'false'); paint(performance.now()); };
   const lv = side.querySelector('#live'); if (lv) lv.onclick = () => { clockMode = 'live'; render(); };
-  const setColor = (id, v) => { const l = lights.find(x => x.id === id); l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; };
-  $('[data-color]').forEach(b => b.onclick = () => { setColor(b.dataset.color, b.dataset.v); render(); });
-  $('[data-pick]').forEach(i => { i.oninput = () => setColor(i.dataset.pick, i.value); i.onchange = render; });
+  const setColor = (id, v, send) => { const l = lights.find(x => x.id === id); l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; if (send) act('light', l, true, { rgb_color: l.color }); };
+  $('[data-color]').forEach(b => b.onclick = () => { setColor(b.dataset.color, b.dataset.v, true); render(); });
+  $('[data-pick]').forEach(i => { i.oninput = () => setColor(i.dataset.pick, i.value); i.onchange = () => { setColor(i.dataset.pick, i.value, true); render(); }; });
   const lb = side.querySelector('#labels'); if (lb) lb.onchange = e => { showLabels = e.target.checked; paint(performance.now()); };
 }
 
-// ---- starting state: a lived-in evening (#off starts dark, #all-on lights everything; #<room> opens a room)
-const SAMPLE = ['dining', 'kitchen', 'kitchen_counter', 'upper_cabinet', 'hall_accent', 'm_bedroom', 'porch', 'garage_front', 'master_fan_light', 'back_door', 'master_closet', 'kitchen_sink'];
-const tag = location.hash.slice(1), qs = new URLSearchParams(location.search);
-if (qs.has('t')) { clockMode = 'set'; clockHour = +qs.get('t'); }
-if (qs.has('weather')) { weather = qs.get('weather'); if (weather === 'snow') snowCover = 1; }
-if (qs.has('garage')) garageDoors.forEach(g => { g.closed = false; g.level = 1; g.openSince = Date.now() - +qs.get('garage') * 60000; });
-if (qs.has('dog') && dog) { const [x, y] = qs.get('dog').split(',').map(Number); Object.assign(dog, { x, y, napping: false, wait: 0 }); }
-if (tag === 'all-on') lights.forEach(l => { l.on = true; l.level = 1; });
-else if (tag !== 'off') {
-  lights.forEach(l => { l.on = SAMPLE.includes(l.id); l.level = l.on ? 1 : 0; });
-  covers.forEach(c => { if (c.kind === 'garage') return; c.closed = c.id === 'm_bedroom_blinds'; c.level = c.closed ? 1 : 0; });
-  fans.forEach(f => { f.on = f.id === 'master_fan'; f.speed = f.on ? 1 : 0; });
-}
+// ---- boot: the bridge seeds state (sample data in the preview, live states in HA)
+bridge.init?.(api);
 render();
-map.onload = () => { const id = tag.replace(/-/g, '_'); openRoom(ROOMS.some(r => r.id === id) ? id : null); };
-requestAnimationFrame(frame);
-</script>
-</body>
-</html>
+map.onload = () => { openRoom(bridge.startRoom && ROOMS.some(r => r.id === bridge.startRoom) ? bridge.startRoom : null); };
+let raf = requestAnimationFrame(function loop(t) { frame(t); });
+
+// ---- api the bridge uses to push state in
+const WEATHER = { rainy: 'rain', pouring: 'rain', 'lightning-rainy': 'storm', lightning: 'storm', snowy: 'snow', 'snowy-rainy': 'snow', hail: 'snow' };
+function setStates(states, first) {
+  const st = e => e && states[e];
+  for (const l of lights) {
+    const s = st(l.entity); l.na = !s || s.state === 'unavailable';
+    l.on = !!s && s.state === 'on';
+    const rgb = s && s.attributes && s.attributes.rgb_color; if (rgb && l.rgb) { l.color = rgb; l.tint = `rgb(${rgb})`; }
+    if (first) l.level = l.on ? 1 : 0;
+  }
+  for (const f of fans) { const s = st(f.entity); f.na = !s || s.state === 'unavailable'; f.on = !!s && s.state === 'on'; if (first) f.speed = f.on ? 1 : 0; }
+  for (const c of covers) {
+    const s = st(c.entity); c.na = !s || s.state === 'unavailable';
+    if (!s || c.na) continue;
+    const closed = s.state === 'closed' || s.state === 'closing';
+    if (c.kind === 'garage') { c.closed = closed; c.openSince = closed ? 0 : Date.parse(s.last_changed); if (first) c.level = closed ? 0 : 1; }
+    else { c.closed = closed; if (first) c.level = closed ? 1 : 0; }
+  }
+  const sun = st(SKY.sun || 'sun.sun'); liveElev = sun && sun.attributes && typeof sun.attributes.elevation === 'number' ? sun.attributes.elevation : null;
+  const w = st(SKY.weather); weather = (w && WEATHER[w.state]) || 'clear';
+  render();
+}
+const api = {
+  lights, fans, covers, garageDoors, dog,
+  setStates,
+  set(k, v) { ({ clockMode: () => clockMode = v, clockHour: () => clockHour = v, weather: () => weather = v, snowCover: () => snowCover = v })[k](); },
+  openRoom, render,
+  destroy() { stopped = true; cancelAnimationFrame(raf); },
+};
+return api;
+}

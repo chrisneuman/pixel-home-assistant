@@ -5,23 +5,40 @@ Plan: a standalone web component that runs as a Home Assistant custom card first
 
 ![Main floor on desktop](docs/preview-desktop.png)
 
+## Install (Home Assistant)
+
+1. HACS > three-dot menu > **Custom repositories** > add `chrisneuman/pixel-home-assistant` as type **Dashboard**.
+2. Download **Pixel House Card** in HACS, then refresh the browser.
+3. Add a card (panel view works best):
+
+```yaml
+type: custom:pixel-house-card
+floor: main
+# entities:                       # optional: override any device by its id in maps/main-floor/lights.yaml
+#   kitchen: switch.kitchen_light
+```
+
+The card reads live state from every entity in `lights.yaml` and calls `turn_on`/`turn_off` (lights, switches, fans), `open_cover`/`close_cover`, and `light.turn_on` with `rgb_color` for the RGB strips. Unavailable devices show greyed out and ignore taps.
+
+## Develop
+
+```sh
+python3 maps/main-floor/build_map.py   # art + layout (needs Pillow)
+python3 card/build.py                  # dist/pixel-house-card.js + maps/main-floor/preview.html (needs PyYAML)
+node card/test/test.js                 # runs the built card against a fake HA (needs Playwright)
+```
+
+`card/src/engine.js` is the map and room UI shared by the card and the offline preview. `card/src/card.js` is the HA wrapper, `card/src/preview.js` the sample-data preview, and `card/test/states.json` a snapshot of the real entity states used by the tests.
+
 ## What's here so far
 
 `maps/main-floor/`
 - `main-floor.png` – the base art (888×704, 8 px per cell, 1 cell = 6 inches). Placeholder quality; repaint freely as long as the size stays the same.
 - `main-floor.json` – the tile grid (walls, doors, windows, floors) and room rectangles. The renderer uses it so light never glows through walls or closed doors.
-- `lights.yaml` – every light: name, room, map position (or several `fixtures` when one entity drives more than one) and a **placeholder** Home Assistant entity id. Replace the `entity:` values with your real ones.
-- `preview.html` – self-contained interactive preview with mock state. Open it in a browser and tap a light.
+- `lights.yaml` – every light: name, room, map position (or several `fixtures` when one entity drives more than one) and its real Home Assistant entity id.
+- `preview.html` – self-contained interactive preview with sample state (built by `card/build.py`). Open it in a browser and tap a light.
 - `build_map.py` – generates the PNG and JSON from the traced layout and sprite code.
-- `build_preview.py` – inlines the PNG, JSON and YAML into `preview.html`.
 
-Rebuild after changing anything:
-
-```sh
-cd maps/main-floor
-python3 build_map.py      # needs Pillow
-python3 build_preview.py  # needs PyYAML
-```
 
 ## Controls
 
