@@ -1,0 +1,146 @@
+# Main floor lights, traced from the white dots on the Floorplanner export.
+# x / y are map cells (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
+# entity: placeholder Home Assistant ids. Replace each with the real one
+#   (Settings > Devices & services > Entities, or Developer tools > States).
+# radius: how far the glow reaches, in cells. Glow never passes through walls or closed doors.
+
+floor: main
+image: main-floor.png
+layout: main-floor.json
+
+lights:
+  - id: living
+    name: Living room
+    room: living
+    entity: light.living_room
+    x: 55.2
+    y: 6.8
+    radius: 26
+
+  - id: kitchen
+    name: Kitchen
+    room: kitchen
+    entity: light.kitchen
+    x: 94.9
+    y: 15.0
+    radius: 22
+
+  - id: entry
+    name: Entry
+    room: hall
+    entity: light.entry
+    x: 56.0
+    y: 47.9
+    radius: 18
+
+  - id: hall
+    name: Hallway
+    room: hall
+    entity: light.hallway
+    x: 29.7
+    y: 47.3
+    radius: 14
+
+  - id: master_closet
+    name: Master closet
+    room: master_closet
+    entity: light.master_closet
+    x: 6.1
+    y: 16.6
+    radius: 16
+
+  - id: master_bath
+    name: Master bath
+    room: master_bath
+    entity: light.master_bath
+    x: 12.6
+    y: 36.3
+    radius: 14
+
+  - id: main_bath
+    name: Main bath
+    room: main_bath
+    entity: light.main_bath
+    x: 13.0
+    y: 46.0
+    radius: 14
+
+  - id: m_bedroom
+    name: M bedroom
+    room: m_bedroom
+    entity: light.m_bedroom
+    x: 41.1
+    y: 59.4
+    radius: 22
+
+  - id: mud_room
+    name: Mud room
+    room: mud_room
+    entity: light.mud_room
+    x: 97.6
+    y: 29.5
+    radius: 18
+
+  - id: garage
+    name: Garage
+    room: garage
+    entity: light.garage
+    x: 81.7
+    y: 52.7
+    radius: 32
+
+  - id: porch_left
+    name: Porch left
+    room: porch
+    entity: light.porch_left
+    x: 52.5
+    y: 63.0
+    radius: 18
+
+  - id: porch_right
+    name: Porch right
+    room: porch
+    entity: light.porch_right
+    x: 59.6
+    y: 63.8
+    radius: 18
+
+  - id: back_door
+    name: Back exterior
+    room: outside
+    entity: light.back_exterior
+    x: 79.4
+    y: 3.4
+    radius: 12
+
+  - id: garage_front_left
+    name: Garage front left
+    room: outside
+    entity: light.garage_front_left
+    x: 66.3
+    y: 77.8
+    radius: 12
+
+  - id: garage_front_right
+    name: Garage front right
+    room: outside
+    entity: light.garage_front_right
+    x: 100.2
+    y: 77.6
+    radius: 12
+
+# Ceiling fans drawn on the plan. Not white dots, so not counted as lights yet.
+# If a fan has a light kit, move it up into `lights` with its light entity.
+fans:
+  - id: master_fan
+    name: Master fan
+    room: master
+    entity: fan.master
+    x: 19.7
+    y: 16.8
+  - id: g_room_fan
+    name: G room fan
+    room: g_room
+    entity: fan.g_room
+    x: 15.4
+    y: 63.0

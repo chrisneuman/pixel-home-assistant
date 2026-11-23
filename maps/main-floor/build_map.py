@@ -1,0 +1,553 @@
+"""Build the main-floor pixel art map from a hand-traced layout.
+
+Grid: 1 cell = 6 inches (half a foot), traced from chris's Floorplanner export.
+Outputs (next to this script):
+  main-floor.png   base art, 8 px per cell, all lights drawn as "off" fixtures
+  main-floor.json  tile grid + room rectangles (used by the card for glow clipping and labels)
+
+Run:  python3 build_map.py
+"""
+import json, os, random
+from PIL import Image, ImageDraw
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+W, H = 111, 88          # cells
+CELL = 8                 # art pixels per cell
+
+# ---------------------------------------------------------------- layout
+# tile codes: '.' grass, '#' wall, ' ' floor, 'D' door, 'F' front door,
+# 'Z' garage door, 'c' sliding closet door, 'R' porch railing, 'S' stairs,
+# 'p' porch steps, 'd' driveway/path
+grid = [['.'] * W for _ in range(H)]
+
+def fill(c0, r0, c1, r1, t):
+    for r in range(r0, r1 + 1):
+        for c in range(c0, c1 + 1):
+            grid[r][c] = t
+
+ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
+    ("master",        "Master",        "carpet_tan",  [(10, 5, 32, 30), (28, 31, 32, 36)]),
+    ("master_closet", "Master closet", "darkwood",    [(5, 5, 8, 30)]),
+    ("master_bath",   "Master bath",   "tile_blue",   [(5, 32, 21, 39)]),
+    ("front_closet",  "Front closet",  "darkwood",    [(23, 32, 26, 39)]),
+    ("main_bath",     "Main bath",     "tile_blue",   [(5, 41, 21, 48)]),
+    ("living",        "Living",        "wood",        [(34, 5, 59, 37)]),
+    ("dining",        "Dining room",   "wood",        [(60, 5, 80, 21), (60, 22, 78, 26)]),
+    ("kitchen",       "Kitchen",       "tile_check",  [(81, 5, 105, 21)]),
+    ("hall",          "Hall",          "wood",        [(28, 38, 59, 40), (23, 41, 32, 51), (51, 41, 59, 53)]),
+    ("stairs",        "Stairs",        "darkwood",    [(61, 28, 82, 34), (80, 23, 81, 27)]),
+    ("mud_room",      "Mud room",      "tile_check",  [(83, 23, 105, 34)]),
+    ("garage",        "Garage",        "concrete",    [(61, 36, 104, 74)]),
+    ("g_room",        "G room",        "carpet_pink", [(5, 53, 28, 68)]),
+    ("g_closet",      "G room closet", "darkwood",    [(5, 50, 21, 51)]),
+    ("m_bedroom",     "M bedroom",     "carpet_blue", [(34, 42, 44, 68), (45, 47, 49, 68), (30, 53, 33, 68)]),
+    ("m_closet",      "M bedroom closet", "darkwood", [(46, 42, 49, 45)]),
+    ("porch",         "Porch",         "stone",       [(51, 55, 59, 69), (24, 70, 59, 79)]),
+]
+for _, _, _, rects in ROOMS:
+    for r in rects:
+        fill(*r, ' ')
+
+WALLS = [
+    (4, 4, 106, 4), (4, 4, 4, 69), (106, 4, 106, 35), (4, 69, 50, 69),
+    (9, 5, 9, 30), (33, 4, 33, 37), (4, 31, 27, 31), (27, 31, 27, 40), (27, 37, 33, 37),
+    (22, 31, 22, 52), (4, 40, 27, 40), (4, 49, 22, 49), (4, 52, 5, 52), (21, 52, 29, 52),
+    (29, 52, 29, 69), (29, 52, 33, 52), (33, 41, 33, 52), (33, 41, 50, 41),
+    (45, 41, 45, 46), (45, 46, 50, 46), (50, 41, 50, 69), (50, 54, 60, 54),
+    (60, 27, 60, 75), (60, 27, 79, 27), (79, 22, 79, 27), (79, 22, 106, 22),
+    (82, 22, 82, 27), (60, 35, 106, 35), (105, 35, 105, 75), (60, 75, 105, 75),
+]
+for w in WALLS:
+    fill(*w, '#')
+fill(82, 28, 82, 34, ' ')          # stairs open into the mud room
+fill(61, 28, 82, 34, 'S')
+for r in range(23, 28):            # little nook beside the stairs
+    fill(80, r, 81, r, ' ')
+# doors
+fill(14, 31, 17, 31, 'D')          # master -> master bath
+fill(28, 37, 32, 37, 'D')          # master -> hall
+fill(27, 38, 27, 39, 'D')          # front closet
+fill(22, 44, 22, 47, 'D')          # main bath
+fill(24, 52, 27, 52, 'D')          # G room
+fill(30, 52, 32, 52, 'D')          # M bedroom
+fill(46, 46, 48, 46, 'D')          # M bedroom closet
+fill(96, 22, 100, 22, 'D')         # kitchen -> mud room
+fill(95, 35, 99, 35, 'D')          # mud room -> garage
+fill(52, 54, 57, 54, 'F')          # front door
+fill(68, 75, 97, 75, 'Z')          # garage door
+for r in list(range(7, 15)) + list(range(19, 29)):
+    grid[r][9] = 'c'               # master closet sliders
+fill(6, 52, 20, 52, 'c')           # G room closet sliders
+fill(14, 69, 19, 69, 'W')          # G room window over the bench
+# porch railing + steps, driveway, front path
+fill(23, 69, 23, 80, 'R'); fill(23, 80, 60, 80, 'R'); fill(60, 76, 60, 80, 'R')
+fill(38, 80, 43, 80, 'p')
+fill(38, 81, 43, 87, 'd')
+fill(64, 76, 101, 87, 'd')
+
+room_of = [[None] * W for _ in range(H)]
+for rid, _, mat, rects in ROOMS:
+    for (c0, r0, c1, r1) in rects:
+        for r in range(r0, r1 + 1):
+            for c in range(c0, c1 + 1):
+                room_of[r][c] = rid
+MAT = {rid: mat for rid, _, mat, _ in ROOMS}
+
+# ---------------------------------------------------------------- palette
+PAL = dict(
+    grass=(92, 160, 72), grass_d=(70, 132, 60), grass_l=(124, 186, 92),
+    flower_r=(232, 96, 96), flower_y=(250, 220, 90), flower_w=(240, 240, 240),
+    wall=(58, 46, 66), wall_top=(112, 92, 122), wall_d=(36, 28, 42),
+    wood=(196, 136, 82), wood_d=(166, 108, 62), wood_l=(214, 158, 104),
+    dwood=(132, 90, 58), dwood_d=(104, 70, 44),
+    carpet_tan=(214, 190, 150), carpet_tan_d=(198, 172, 132),
+    carpet_pink=(232, 168, 176), carpet_pink_d=(214, 148, 160),
+    carpet_blue=(146, 168, 214), carpet_blue_d=(126, 148, 196),
+    tile_a=(236, 236, 228), tile_b=(200, 206, 214),
+    tile_blue=(176, 214, 230), tile_blue_d=(150, 192, 214),
+    concrete=(168, 168, 170), concrete_d=(148, 148, 152), concrete_l=(184, 184, 186),
+    stone=(186, 176, 160), stone_d=(156, 146, 130),
+    drive=(150, 146, 140), drive_d=(132, 128, 124),
+    door=(150, 100, 54), door_d=(110, 70, 36), outline=(30, 24, 34),
+)
+
+rng = random.Random(42)
+img = Image.new('RGB', (W * CELL, H * CELL), PAL['grass'])
+px = img.load()
+d = ImageDraw.Draw(img)
+
+def h(x, y, s=0):
+    return ((x * 73856093) ^ (y * 19349663) ^ (s * 83492791)) & 0xffff
+
+def floor_px(mat, x, y):
+    if mat == 'wood':  # horizontal planks, staggered seams
+        row = y // 6
+        if y % 6 == 5: return PAL['wood_d']
+        off = (row * 13) % 24
+        if (x + off) % 24 == 0: return PAL['wood_d']
+        return PAL['wood_l'] if h(x // 3, row) % 11 == 0 else PAL['wood']
+    if mat == 'darkwood':
+        row = y // 5
+        if y % 5 == 4 or (x + row * 7) % 16 == 0: return PAL['dwood_d']
+        return PAL['dwood']
+    if mat.startswith('carpet'):
+        base = PAL[mat]; dk = PAL[mat + '_d']
+        return dk if (h(x, y) % 7 == 0 or (x + y) % 4 == 0 and h(x, y, 1) % 3 == 0) else base
+    if mat == 'tile_check':
+        return PAL['tile_a'] if ((x // 8) + (y // 8)) % 2 == 0 else PAL['tile_b']
+    if mat == 'tile_blue':
+        return PAL['tile_blue_d'] if x % 6 == 0 or y % 6 == 0 else PAL['tile_blue']
+    if mat == 'concrete':
+        v = h(x, y) % 23
+        if x % 64 == 0 or y % 64 == 0: return PAL['concrete_d']
+        return PAL['concrete_d'] if v == 0 else PAL['concrete_l'] if v == 1 else PAL['concrete']
+    if mat == 'stone':
+        row = y // 8; off = 6 if row % 2 else 0
+        if y % 8 == 0 or (x + off) % 12 == 0: return PAL['stone_d']
+        return PAL['stone']
+    return (255, 0, 255)
+
+def grass_px(x, y):
+    v = h(x, y, 3) % 40
+    if v < 3: return PAL['grass_d']
+    if v == 3: return PAL['grass_l']
+    return PAL['grass']
+
+# base layer
+for r in range(H):
+    for c in range(W):
+        t = grid[r][c]
+        for y in range(r * CELL, r * CELL + CELL):
+            for x in range(c * CELL, c * CELL + CELL):
+                if t == '.':
+                    col = grass_px(x, y)
+                elif t == 'd' or t == 'p':
+                    col = PAL['drive_d'] if (x % 16 == 0 or y % 16 == 0 or h(x, y) % 29 == 0) else PAL['drive']
+                elif t in ' S':
+                    col = floor_px(MAT[room_of[r][c]], x, y)
+                elif t in 'DFcZR#W':
+                    col = PAL['wall']
+                px[x, y] = col
+
+# grass tufts and flowers
+for _ in range(500):
+    x, y = rng.randrange(W * CELL), rng.randrange(H * CELL)
+    if grid[y // CELL][x // CELL] != '.': continue
+    if rng.random() < 0.12:
+        col = rng.choice([PAL['flower_r'], PAL['flower_y'], PAL['flower_w']])
+        for dx, dy in [(0, -1), (-1, 0), (1, 0), (0, 1)]:
+            if 0 <= x + dx < W * CELL and 0 <= y + dy < H * CELL: px[x + dx, y + dy] = col
+        px[x, y] = PAL['flower_y'] if col != PAL['flower_y'] else PAL['flower_r']
+    else:
+        for dx, dy in [(0, 0), (-1, -1), (1, -1), (0, -2)]:
+            if 0 <= x + dx < W * CELL and 0 <= y + dy < H * CELL: px[x + dx, y + dy] = PAL['grass_d']
+
+def is_wallish(c, r):
+    return 0 <= c < W and 0 <= r < H and grid[r][c] in '#DFcZW'
+
+# walls: dark body, light top edge, floor drop shadow below
+for r in range(H):
+    for c in range(W):
+        t = grid[r][c]
+        x0, y0 = c * CELL, r * CELL
+        if t == '#':
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
+            if not is_wallish(c, r - 1): d.line([x0, y0, x0 + 7, y0], fill=PAL['wall_top'])
+            if not is_wallish(c, r + 1): d.line([x0, y0 + 7, x0 + 7, y0 + 7], fill=PAL['wall_d'])
+        elif t in 'DF':
+            under = None
+            for nc, nr in [(c, r - 1), (c, r + 1), (c - 1, r), (c + 1, r)]:
+                if 0 <= nr < H and 0 <= nc < W and grid[nr][nc] == ' ':
+                    under = room_of[nr][nc]; break
+            for y in range(y0, y0 + 8):
+                for x in range(x0, x0 + 8):
+                    px[x, y] = floor_px(MAT[under] if under else 'wood', x, y)
+            col = PAL['door'] if t == 'D' else (176, 60, 52)
+            horiz = is_wallish(c - 1, r) or is_wallish(c + 1, r)
+            if horiz:
+                d.rectangle([x0, y0 + 2, x0 + 7, y0 + 5], fill=col)
+                d.line([x0, y0 + 5, x0 + 7, y0 + 5], fill=PAL['door_d'])
+            else:
+                d.rectangle([x0 + 2, y0, x0 + 5, y0 + 7], fill=col)
+                d.line([x0 + 5, y0, x0 + 5, y0 + 7], fill=PAL['door_d'])
+        elif t == 'c':
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(200, 196, 188))
+            vertical = is_wallish(c, r - 1) or is_wallish(c, r + 1) or grid[r - 1][c] == 'c'
+            if vertical:
+                d.line([x0 + 3, y0, x0 + 3, y0 + 7], fill=(140, 136, 130))
+            else:
+                d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(140, 136, 130))
+        elif t == 'W':
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
+            d.rectangle([x0, y0 + 2, x0 + 7, y0 + 5], fill=(150, 206, 236))
+            d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(214, 240, 252))
+            if c % 2 == 0: d.line([x0, y0 + 2, x0, y0 + 5], fill=(240, 236, 224))
+        elif t == 'Z':
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(220, 220, 214))
+            d.line([x0, y0 + 2, x0 + 7, y0 + 2], fill=(170, 170, 166))
+            d.line([x0, y0 + 5, x0 + 7, y0 + 5], fill=(170, 170, 166))
+        elif t == 'R':
+            for y in range(y0, y0 + 8):
+                for x in range(x0, x0 + 8):
+                    px[x, y] = grass_px(x, y)
+            horiz = grid[r][c - 1] in 'Rp' if c > 0 else False
+            horiz = horiz or (c + 1 < W and grid[r][c + 1] in 'Rp')
+            if horiz:
+                d.rectangle([x0, y0 + 2, x0 + 7, y0 + 4], fill=(240, 236, 224))
+                d.line([x0, y0 + 5, x0 + 7, y0 + 5], fill=(150, 140, 120))
+                if c % 3 == 0: d.rectangle([x0 + 2, y0 + 1, x0 + 4, y0 + 6], fill=(250, 248, 240))
+            else:
+                d.rectangle([x0 + 2, y0, x0 + 4, y0 + 7], fill=(240, 236, 224))
+                d.line([x0 + 5, y0, x0 + 5, y0 + 7], fill=(150, 140, 120))
+                if r % 3 == 0: d.rectangle([x0 + 1, y0 + 2, x0 + 6, y0 + 4], fill=(250, 248, 240))
+        elif t == 'S':
+            # treads run vertical (stairs descend left to right toward the mud room)
+            shade = 150 + int(60 * (c - 61) / 21)
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(shade, int(shade * .72), int(shade * .5)))
+            if c % 2 == 0: d.line([x0, y0, x0, y0 + 7], fill=(80, 56, 40))
+        elif t == 'p':
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(196, 188, 172))
+            d.line([x0, y0 + 4, x0 + 7, y0 + 4], fill=(150, 142, 128))
+
+# drop shadow on floors directly below walls
+for r in range(1, H):
+    for c in range(W):
+        if grid[r][c] in ' S' and grid[r - 1][c] == '#':
+            for x in range(c * CELL, c * CELL + 8):
+                for y in range(r * CELL, r * CELL + 2):
+                    rr, gg, bb = px[x, y]
+                    px[x, y] = (int(rr * .7), int(gg * .7), int(bb * .75))
+
+# ---------------------------------------------------------------- furniture sprites
+def P(v): return int(round(v * CELL))
+def box(c0, r0, c1, r1, fill, out=PAL['outline'], hi=None):
+    d.rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], fill=fill, outline=out)
+    if hi: d.line([P(c0) + 1, P(r0) + 1, P(c1) - 2, P(r0) + 1], fill=hi)
+
+def bed(c0, r0, c1, r1, blanket, blanket_d):
+    box(c0, r0, c1, r1, (120, 80, 50))                       # frame
+    box(c0 + .3, r0 + .3, c1 - .3, r1 - .3, blanket, hi=tuple(min(255, v + 30) for v in blanket))
+    for i in range(int((c1 - c0) // 4)):
+        pc = c0 + .8 + i * ((c1 - c0 - 1.6) / max(1, int((c1 - c0) // 4)))
+        box(pc, r0 + .6, pc + 3, r0 + 2.4, (246, 246, 240))   # pillows
+    d.line([P(c0) + 2, P(r0 + 3.2), P(c1) - 3, P(r0 + 3.2)], fill=blanket_d)
+    d.rectangle([P(c0) + 2, P(r0 + 3.2) + 1, P(c1) - 3, P(r0 + 4.2)], fill=(250, 250, 246))
+
+def rug(c0, r0, c1, r1, col, border):
+    d.rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], fill=border)
+    d.rectangle([P(c0) + 3, P(r0) + 3, P(c1) - 4, P(r1) - 4], fill=col)
+    for y in range(P(r0) + 5, P(r1) - 5, 6):
+        d.line([P(c0) + 5, y, P(c1) - 6, y], fill=border)
+
+def plant(c, r):
+    d.ellipse([P(c) - 6, P(r) - 6, P(c) + 6, P(r) + 6], fill=(56, 122, 64), outline=PAL['outline'])
+    d.ellipse([P(c) - 3, P(r) - 4, P(c) + 2, P(r) + 1], fill=(92, 170, 90))
+
+def tree(c, r):
+    d.ellipse([P(c) - 22, P(r) - 18, P(c) + 22, P(r) + 22], fill=(40, 96, 56))
+    d.ellipse([P(c) - 20, P(r) - 22, P(c) + 20, P(r) + 18], fill=(58, 128, 70), outline=(28, 70, 40))
+    d.ellipse([P(c) - 12, P(r) - 16, P(c) + 4, P(r) - 2], fill=(86, 160, 88))
+
+def bush(c, r):
+    d.ellipse([P(c) - 9, P(r) - 7, P(c) + 9, P(r) + 7], fill=(50, 116, 62), outline=(28, 70, 40))
+    d.ellipse([P(c) - 5, P(r) - 5, P(c) + 2, P(r)], fill=(84, 154, 84))
+
+def toilet(c, r):
+    box(c, r, c + 2, r + 1, (240, 240, 244))
+    d.ellipse([P(c) + 1, P(r + 1), P(c + 2) - 2, P(r + 3)], fill=(250, 250, 252), outline=PAL['outline'])
+
+def vanity(c0, r0, c1, r1):
+    box(c0, r0, c1, r1, (150, 108, 72), hi=(180, 136, 96))
+    cx = (c0 + c1) / 2
+    d.ellipse([P(cx) - 6, P(r0) + 2, P(cx) + 6, P(r1) - 3], fill=(230, 240, 246), outline=(110, 120, 130))
+
+def tub(c0, r0, c1, r1):
+    box(c0, r0, c1, r1, (244, 244, 248))
+    d.rounded_rectangle([P(c0) + 3, P(r0) + 3, P(c1) - 4, P(r1) - 4], radius=4, fill=(170, 214, 236))
+
+def car(c0, r0, c1, r1, body, body_d):
+    d.rounded_rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], radius=10, fill=body, outline=PAL['outline'])
+    d.rounded_rectangle([P(c0) + 6, P(r0 + 5), P(c1) - 7, P(r0 + 8)], radius=3, fill=(120, 170, 210), outline=PAL['outline'])
+    d.rectangle([P(c0) + 8, P(r0 + 8) + 1, P(c1) - 9, P(r1 - 6)], fill=body_d)
+    d.rounded_rectangle([P(c0) + 6, P(r1 - 6), P(c1) - 7, P(r1 - 4)], radius=3, fill=(120, 170, 210), outline=PAL['outline'])
+    for (x, y) in [(P(c0) - 2, P(r0 + 3)), (P(c1) - 2, P(r0 + 3)), (P(c0) - 2, P(r1 - 5)), (P(c1) - 2, P(r1 - 5))]:
+        d.rectangle([x, y, x + 3, y + 12], fill=(30, 30, 34))
+    d.rectangle([P(c0) + 4, P(r1) - 4, P(c0) + 10, P(r1) - 2], fill=(250, 230, 140))
+    d.rectangle([P(c1) - 11, P(r1) - 4, P(c1) - 5, P(r1) - 2], fill=(250, 230, 140))
+
+def fan(c, r, blade=(70, 52, 44)):
+    cx, cy = P(c), P(r)
+    for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+        x1, y1 = cx + dx * 22, cy + dy * 22
+        w = 4
+        d.polygon([(cx + dy * w, cy - dx * w), (x1 + dy * w, y1 - dx * w), (x1 - dy * w, y1 + dx * w), (cx - dy * w, cy + dx * w)], fill=blade, outline=PAL['outline'])
+
+
+def builtins(c0, r0, c1, r1):
+    """Bookshelf built-ins against a wall, seen from above with book tops showing."""
+    box(c0, r0, c1, r1, (236, 230, 216), hi=(250, 248, 240))
+    cols = [(200, 70, 70), (70, 120, 190), (240, 200, 80), (90, 160, 100), (160, 100, 170), (230, 140, 60)]
+    x = P(c0) + 2; i = 0
+    while x < P(c1) - 3:
+        w = 2 + (i * 7) % 3
+        d.rectangle([x, P(r0) + 4, min(x + w - 1, P(c1) - 3), P(r1) - 4], fill=cols[(i * 5) % len(cols)])
+        x += w + 1; i += 1
+    d.line([P(c0) + 1, P(r0) + 3, P(c1) - 2, P(r0) + 3], fill=(200, 190, 170))
+
+def window_bench(c0, r0, c1, r1):
+    box(c0, r0, c1, r1, (150, 100, 60), hi=(180, 130, 90))
+    d.rectangle([P(c0) + 2, P(r0) + 3, P(c1) - 3, P(r1) - 3], fill=(120, 150, 210))
+    d.line([P(c0) + 2, P(r0) + 3, P(c1) - 3, P(r0) + 3], fill=(160, 190, 236))
+    box(c0 + .6, r0 + .5, c0 + 2.4, r0 + 2.2, (250, 220, 120)); box(c1 - 2.4, r0 + .5, c1 - .6, r0 + 2.2, (240, 150, 170))
+
+def castle_bed(c0, r0, c1, r1):
+    """Castle bed: stone walls with crenellations, round towers with pink roofs, flags."""
+    stone, stone_d, stone_l = (176, 172, 184), (130, 126, 140), (204, 200, 212)
+    box(c0, r0, c1, r1, stone)
+    for y in range(P(r0) + 3, P(r1) - 2, 6):                               # brick courses
+        d.line([P(c0) + 1, y, P(c1) - 2, y], fill=stone_d)
+        off = 0 if (y // 6) % 2 else 4
+        for x in range(P(c0) + 1 + off, P(c1) - 2, 8):
+            d.line([x, y - 5, x, y], fill=stone_d)
+    for x in range(P(c0) + 2, P(c1) - 4, 8):                               # crenellations
+        d.rectangle([x, P(r0) + 1, x + 3, P(r0) + 3], fill=stone_l, outline=stone_d)
+    for y in range(P(r0) + 2, P(r1) - 4, 8):
+        d.rectangle([P(c0) + 1, y, P(c0) + 3, y + 3], fill=stone_l, outline=stone_d)
+    # mattress inside the walls
+    mc0, mr0, mc1, mr1 = c0 + 1.6, r0 + 4.5, c1 - .6, r1 - 1.2
+    box(mc0, mr0, mc1, mr1, (240, 150, 190), hi=(255, 190, 220))
+    box(mc0 + .8, mr0 + .6, mc0 + 3.8, mr0 + 2.4, (250, 250, 246)); box(mc1 - 3.8, mr0 + .6, mc1 - .8, mr0 + 2.4, (250, 250, 246))
+    d.rectangle([P(mc0) + 2, P(mr0 + 3.2), P(mc1) - 3, P(mr0 + 4.2)], fill=(255, 236, 246))
+    for y in range(P(mr0 + 6), P(mr1) - 4, 10):                            # heart quilt
+        for x in range(P(mc0) + 6, P(mc1) - 6, 12):
+            d.point([(x, y), (x + 2, y), (x - 1, y + 1), (x + 1, y + 1), (x + 3, y + 1), (x, y + 2), (x + 2, y + 2), (x + 1, y + 3)], fill=(210, 80, 130))
+    # gate on the room side
+    gx, gy = P(c0), P((r0 + r1) / 2)
+    d.rectangle([gx - 1, gy - 10, gx + 5, gy + 10], fill=(110, 76, 50), outline=PAL['outline'])
+    for yy in range(gy - 8, gy + 9, 3): d.line([gx, yy, gx + 4, yy], fill=(70, 48, 32))
+    # towers + roofs + flags
+    for (tx, ty) in [(c0 + 1, r0 + 1.2), (c1 - 1.5, r0 + 1.2), (c0 + 1, r1 - 1.2)]:
+        cx, cy = P(tx), P(ty)
+        d.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], fill=stone, outline=PAL['outline'])
+        d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(214, 96, 150), outline=(150, 50, 100))
+        d.ellipse([cx - 5, cy - 5, cx + 5, cy + 5], fill=(236, 130, 180))
+        d.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=(255, 200, 230))
+        d.line([cx, cy, cx, cy - 16], fill=(60, 50, 50))
+        d.polygon([(cx + 1, cy - 16), (cx + 9, cy - 13), (cx + 1, cy - 10)], fill=(250, 220, 90), outline=(170, 120, 40))
+
+def bronco(c0, r0, c1, r1):
+    """Boxy marsh-grey Bronco, nose toward the garage door (down), spare tire on the back."""
+    body, body_d, body_l = (128, 134, 128), (100, 106, 102), (156, 162, 156)
+    black = (34, 34, 38)
+    # tires peeking out under black fender flares
+    for (x, y) in [(c0 - .4, r0 + 4.5), (c1 - 1.2, r0 + 4.5), (c0 - .4, r1 - 9), (c1 - 1.2, r1 - 9)]:
+        d.rectangle([P(x), P(y), P(x + 1.6) - 1, P(y + 5) - 1], fill=black)
+        d.rectangle([P(x) - 2, P(y) - 3, P(x + 1.6) + 1, P(y + 5) + 2], outline=(52, 52, 56))
+    d.rectangle([P(c0), P(r0 + 1), P(c1) - 1, P(r1) - 1], fill=body, outline=PAL['outline'])
+    # hood (front, bottom) with center crease and vents
+    hood_top = r1 - 8.5
+    d.rectangle([P(c0) + 3, P(hood_top), P(c1) - 4, P(r1) - 5], fill=body_l)
+    d.line([P((c0 + c1) / 2), P(hood_top) + 2, P((c0 + c1) / 2), P(r1) - 7], fill=body_d)
+    for i in range(3):
+        d.line([P(c0) + 8, P(hood_top) + 6 + i * 3, P(c0) + 18, P(hood_top) + 6 + i * 3], fill=body_d)
+        d.line([P(c1) - 19, P(hood_top) + 6 + i * 3, P(c1) - 9, P(hood_top) + 6 + i * 3], fill=body_d)
+    # grille + round headlights + bumper
+    d.rectangle([P(c0) + 2, P(r1) - 5, P(c1) - 3, P(r1) - 2], fill=black)
+    for x in (P(c0) + 6, P(c1) - 11):
+        d.ellipse([x, P(r1) - 6, x + 5, P(r1) - 1], fill=(250, 240, 180), outline=PAL['outline'])
+    d.rectangle([P(c0) - 1, P(r1) - 1, P(c1), P(r1) + 1], fill=(52, 52, 56))
+    # windshield, black hardtop with sunroof panels, rear window
+    ws = hood_top - 2.2
+    d.rectangle([P(c0) + 4, P(ws), P(c1) - 5, P(hood_top) - 1], fill=(110, 160, 196), outline=PAL['outline'])
+    d.line([P(c0) + 6, P(ws) + 3, P(c0) + 14, P(ws) + 3], fill=(200, 230, 246))
+    d.rectangle([P(c0) + 3, P(r0 + 3), P(c1) - 4, P(ws) - 1], fill=body_d, outline=PAL['outline'])
+    d.line([P(c0) + 4, P(r0 + 3) + 1, P(c1) - 5, P(r0 + 3) + 1], fill=body_l)
+    for i in range(2):                                                    # removable roof panels
+        y0 = P(r0 + 5 + i * 6)
+        d.rectangle([P(c0) + 7, y0, P(c1) - 8, y0 + 40], fill=(44, 44, 50), outline=(24, 24, 28))
+    for y in range(P(r0 + 18), P(ws) - 4, 6):                              # roof rack slats
+        d.line([P(c0) + 6, y, P(c1) - 7, y], fill=(70, 74, 72))
+    d.rectangle([P(c0) + 5, P(r0 + 1.4), P(c1) - 6, P(r0 + 2.8)], fill=(110, 160, 196))
+    # mirrors
+    for x in (P(c0) - 5, P(c1) + 1):
+        d.rectangle([x, P(hood_top) - 6, x + 3, P(hood_top) - 1], fill=black)
+    # spare tire on the back (top)
+    cx = P((c0 + c1) / 2)
+    d.ellipse([cx - 12, P(r0) - 9, cx + 12, P(r0) + 9], fill=black, outline=(70, 70, 76))
+    d.ellipse([cx - 6, P(r0) - 4, cx + 6, P(r0) + 4], fill=(150, 150, 156))
+    d.rectangle([cx - 1, P(r0) - 1, cx + 1, P(r0) + 1], fill=black)
+
+def bike(c, r, frame):
+    x, y = P(c), P(r)
+    d.ellipse([x - 5, y - 28, x + 5, y - 12], outline=(30, 30, 34), width=3)
+    d.ellipse([x - 5, y + 12, x + 5, y + 28], outline=(30, 30, 34), width=3)
+    d.line([x, y - 18, x, y + 18], fill=frame, width=4)
+    d.line([x - 10, y - 18, x + 10, y - 18], fill=(30, 30, 34), width=3)
+    d.rectangle([x - 3, y + 2, x + 3, y + 9], fill=(60, 50, 40))
+
+def washer_dryer_stack(c0, r0, c1, r1):
+    """Stacked pair in the corner, drawn front-on (Pokemon 3/4 style)."""
+    box(c0, r0, c1, r1, (238, 238, 242))
+    mid = P((r0 + r1) / 2)
+    d.line([P(c0) + 1, mid, P(c1) - 2, mid], fill=(150, 150, 160))
+    for top in (P(r0), mid):
+        d.rectangle([P(c0) + 2, top + 2, P(c1) - 3, top + 5], fill=(190, 194, 204))
+        d.point([(P(c1) - 6, top + 3), (P(c1) - 9, top + 3)], fill=(90, 200, 120))
+        cx, cy = P((c0 + c1) / 2), top + 17
+        d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(170, 180, 196), outline=PAL['outline'])
+        d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6], fill=(140, 196, 230))
+        d.arc([cx - 4, cy - 4, cx + 4, cy + 4], 200, 300, fill=(240, 250, 255))
+
+def cat(c, r):
+    """Small grey cat napping in a curl."""
+    x, y = P(c), P(r)
+    d.ellipse([x - 7, y - 5, x + 7, y + 5], fill=(110, 110, 120), outline=PAL['outline'])
+    d.ellipse([x + 2, y - 6, x + 9, y + 1], fill=(120, 120, 130), outline=PAL['outline'])
+    d.polygon([(x + 3, y - 5), (x + 4, y - 9), (x + 6, y - 6)], fill=(120, 120, 130), outline=PAL['outline'])
+    d.polygon([(x + 6, y - 6), (x + 8, y - 9), (x + 9, y - 5)], fill=(120, 120, 130), outline=PAL['outline'])
+    d.arc([x - 9, y - 2, x + 1, y + 8], 60, 200, fill=(80, 80, 90), width=2)
+    d.point([(x + 5, y - 3), (x + 7, y - 3)], fill=(30, 30, 34))
+
+def mailbox(c, r):
+    x, y = P(c), P(r)
+    d.rectangle([x - 1, y, x + 1, y + 8], fill=(110, 80, 50))
+    d.rounded_rectangle([x - 5, y - 6, x + 5, y + 1], radius=3, fill=(70, 100, 170), outline=PAL['outline'])
+    d.rectangle([x + 5, y - 6, x + 7, y - 3], fill=(220, 60, 60))
+
+def mushroom(c, r):
+    x, y = P(c), P(r)
+    d.rectangle([x - 1, y, x + 1, y + 3], fill=(240, 232, 214))
+    d.ellipse([x - 4, y - 3, x + 4, y + 2], fill=(220, 60, 60), outline=PAL['outline'])
+    d.point([(x - 2, y - 1), (x + 1, y - 2), (x + 2, y)], fill=(255, 255, 255))
+
+# living room
+rug(37, 12, 46, 24, (176, 74, 66), (226, 190, 120))
+box(34, 13.5, 35, 22.5, (32, 32, 40), hi=(80, 80, 96))                  # wall TV
+box(48, 12, 52.5, 24, (220, 150, 40), hi=(244, 190, 90))                # sofa
+box(51, 12, 52.5, 24, (190, 120, 30))
+box(48, 12, 52.5, 13.2, (190, 120, 30)); box(48, 22.8, 52.5, 24, (190, 120, 30))
+box(41, 26, 45, 29, (150, 100, 60), hi=(180, 130, 90))                  # side table
+plant(35.5, 6.5); plant(58, 33.5)
+# dining
+d.ellipse([P(64.5), P(10.5), P(71.5), P(17.5)], fill=(150, 98, 58), outline=PAL['outline'])
+d.ellipse([P(65.2), P(11.2), P(70.8), P(16.8)], fill=(176, 120, 74))
+for ang in range(0, 360, 60):
+    import math
+    x = 68 + 4.6 * math.cos(math.radians(ang)); y = 14 + 4.6 * math.sin(math.radians(ang))
+    box(x - .9, y - .9, x + .9, y + .9, (110, 76, 50))
+# kitchen
+box(88, 5, 106, 8, (96, 96, 104), hi=(140, 140, 150))                  # back counter
+box(90.5, 5.5, 95, 7.5, (190, 200, 210)); d.line([P(92.75), P(5.5), P(92.75), P(7.5)], fill=(120, 130, 140))
+box(101, 5, 106, 9.5, (226, 226, 230), hi=(250, 250, 250))             # fridge
+box(102.5, 12, 106, 16.5, (60, 60, 66))                                # stove
+for (x, y) in [(103.5, 13.2), (105, 13.2), (103.5, 15.2), (105, 15.2)]:
+    d.ellipse([P(x) - 4, P(y) - 4, P(x) + 4, P(y) + 4], outline=(200, 80, 60))
+box(82, 5.5, 87, 14, (210, 180, 130), hi=(236, 210, 160))              # island
+for y in (6.5, 9.5, 12.5):
+    d.ellipse([P(80) - 1, P(y) - 5, P(81.4), P(y) + 6], fill=(60, 40, 30), outline=PAL['outline'])
+# master
+bed(14, 5, 25, 16, (110, 130, 170), (80, 100, 140))
+box(11, 5, 13.5, 7.5, (150, 100, 60), hi=(180, 130, 90)); box(25.5, 5, 28, 7.5, (150, 100, 60), hi=(180, 130, 90))
+box(24, 26, 32, 30, (150, 100, 60), hi=(180, 130, 90))                  # dresser
+fan(19.7, 16.8)
+# bathrooms
+tub(5, 32.5, 10.5, 39.8); vanity(13, 32, 19, 34); toilet(19, 36.5)
+tub(5, 41.2, 10.5, 48.8); vanity(13, 41, 19, 43); toilet(19, 46)
+# G room: bed, built-ins flanking a window bench on the bottom wall
+bed(5.2, 53.3, 13, 62, (110, 170, 120), (80, 140, 96))
+rug(16, 55, 26, 61, (250, 236, 190), (120, 170, 150))
+builtins(5, 66, 13, 69)
+builtins(20, 66, 29, 69)
+window_bench(13, 66.4, 20, 69)
+fan(15.4, 63, blade=(196, 182, 170))
+# M bedroom: castle bed in the bottom-right corner along the right wall
+castle_bed(40.5, 49, 50, 69)
+box(34, 42, 40, 44.2, (150, 100, 60), hi=(180, 130, 90))                  # dresser
+rug(34.5, 55, 39.8, 66, (240, 220, 160), (200, 160, 110))
+# hall runner + entry mat
+rug(24, 42, 28, 50, (90, 110, 150), (60, 76, 110))
+box(53, 52.3, 57, 53.8, (120, 84, 60))
+# garage
+bronco(66, 42, 79, 72.5)
+bike(89, 60, (60, 150, 200)); bike(94, 62, (230, 120, 60))
+box(100, 40, 104.6, 56, (120, 120, 126), hi=(150, 150, 156))             # storage shelf
+for y in (41, 45, 49, 53):
+    box(100.6, y, 102.4, y + 2.4, (200, 160, 80)); box(102.6, y + .6, 104, y + 2.6, (90, 140, 200))
+box(62, 36, 80, 38.5, (130, 92, 60), hi=(160, 120, 84))                 # workbench
+for x in range(63, 79, 3):
+    box(x, 36.3, x + 1.5, 37.2, (100, 100, 110))
+# mud room
+box(84, 23, 92, 25.5, (150, 100, 60), hi=(180, 130, 90))                # bench
+for x in (85, 87.5, 90):                                                  # boots under the bench
+    box(x, 25.6, x + 1, 26.6, (90, 60, 40)); box(x + 1.1, 25.6, x + 2.1, 26.6, (90, 60, 40))
+washer_dryer_stack(101.4, 27, 106, 35)
+# porch
+box(53, 55.2, 57, 56.6, (150, 110, 70))                                 # door mat
+box(26, 71, 32, 73, (150, 100, 60), hi=(180, 130, 90))                   # porch bench
+plant(25, 78.5); plant(58.5, 78.5); plant(52, 68)
+cat(42, 18)
+# yard
+mailbox(62.5, 84)
+for (c, r) in [(15, 81), (17, 82.5), (100, 4), (30, 2)]:
+    mushroom(c, r)
+for (c, r) in [(10, 76), (104, 84), (8, 84)]:
+    tree(c, r)
+for c in range(6, 22, 4):
+    bush(c, 71.5)
+for c in range(26, 37, 4):
+    bush(c, 82)
+for c in range(46, 58, 4):
+    bush(c, 82)
+
+img.save(os.path.join(HERE, 'main-floor.png'))
+with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
+    json.dump({
+        "cell_px": CELL, "cell_feet": 0.5, "width": W, "height": H,
+        "legend": {".": "grass", "#": "wall", " ": "floor", "D": "door", "F": "front door",
+                   "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window",
+                   "S": "stairs", "p": "porch steps", "d": "driveway"},
+        "tiles": [''.join(row) for row in grid],
+        "rooms": [{"id": rid, "name": name, "floor": mat, "rects": rects}
+                  for rid, name, mat, rects in ROOMS],
+    }, f, indent=1)
+print('wrote main-floor.png', img.size)
