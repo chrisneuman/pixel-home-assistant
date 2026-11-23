@@ -29,5 +29,13 @@ Tap a room to zoom into it. A panel lists everything in that room as big toggles
 
 ## How lights render
 
-Rooms get a dusky "night" tint. A light that is on cuts that tint away with a stepped (pixel-style) radial glow plus a warm overlay, clipped to the space it can actually reach.
+The house gets an ambient tint from the sun's elevation (HA `sun.sun`): clear in the day, orange at sunset, blue at dusk, navy at night. A light that is on cuts that tint away with a stepped (pixel-style) radial glow plus a warm overlay, clipped to the space it can actually reach.
 It fades in and out over about half a second and flickers gently while on.
+
+## Weather, the dog and the garage door
+
+- **Rain:** when the weather entity under `sky:` in `lights.yaml` is rainy, rain falls on the yard, deck and driveway (never indoors) and the light goes grey. Thunderstorms add lightning flashes.
+- **Dog:** wanders between the spots under `dog:` in `lights.yaml`, trots along real hallways and doors, and naps on its bed with floating z's.
+- **Garage door:** a cover with `kind: garage`. It rolls open on the map, and once it has been open `alert_after_min` minutes (35) it blinks red with a "!" and a banner appears at the top of the panel. `ha/garage_door_alert.yaml` has the matching Home Assistant automation that sends a phone alert with a "Close it" button.
+
+The preview's Time slider, Live button and Clear/Rain/Storm buttons fake the sun and weather. URL options: `?t=20.5` (time), `?weather=rain|storm`, `?garage=40` (open 40 minutes).

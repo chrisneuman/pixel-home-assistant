@@ -1,0 +1,53 @@
+# Garage door left open: phone alert after 35 minutes, repeated every 15 minutes until it closes,
+# with a "Close it" button on the notification.
+#
+# Paste each automation into Settings > Automations > Create > Edit in YAML.
+# Replace the placeholders:
+#   cover.garage_door                 your garage door entity (same one as maps/main-floor/lights.yaml)
+#   notify.mobile_app_your_phone      your phone's notify service (Developer tools > Actions, search "notify.mobile_app")
+
+- alias: Garage door left open
+  description: Alert when the garage door has been open 35 minutes, then every 15 minutes until it closes.
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: cover.garage_door
+      to: open
+      for: { minutes: 35 }
+  actions:
+    - repeat:
+        sequence:
+          - action: notify.mobile_app_your_phone
+            data:
+              title: Garage door is open
+              message: >-
+                It's been open {{ ((now() - states.cover.garage_door.last_changed).total_seconds() / 60) | int }} minutes.
+              data:
+                tag: garage-door-open          # replaces the previous alert instead of stacking
+                actions:
+                  - action: CLOSE_GARAGE_DOOR
+                    title: Close it
+          - wait_for_trigger:
+              - trigger: state
+                entity_id: cover.garage_door
+                to: closed
+            timeout: { minutes: 15 }
+        until:
+          - condition: state
+            entity_id: cover.garage_door
+            state: closed
+    - action: notify.mobile_app_your_phone
+      data:
+        message: clear_notification
+        data: { tag: garage-door-open }
+
+- alias: Garage door close from notification
+  description: The "Close it" button on the garage door alert.
+  mode: single
+  triggers:
+    - trigger: event
+      event_type: mobile_app_notification_action
+      event_data: { action: CLOSE_GARAGE_DOOR }
+  actions:
+    - action: cover.close_cover
+      target: { entity_id: cover.garage_door }

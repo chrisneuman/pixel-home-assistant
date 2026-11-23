@@ -69,7 +69,7 @@ fill(27, 38, 27, 39, 'D')          # front closet
 fill(22, 44, 22, 47, 'D')          # main bath
 fill(24, 52, 27, 52, 'D')          # G room
 fill(30, 52, 32, 52, 'D')          # M bedroom
-fill(46, 46, 48, 46, 'D')          # M bedroom closet
+fill(50, 42, 50, 44, 'D')          # M bedroom closet opens to the hall
 fill(96, 22, 100, 22, 'D')         # kitchen -> mud room
 fill(95, 35, 99, 35, 'D')          # mud room -> garage
 fill(52, 54, 57, 54, 'F')          # front door
@@ -446,19 +446,12 @@ def bed_side(c0, r0, c1, r1, blanket, blanket_d, head='right'):
     d.rectangle([min(sx, sx + sw), P(r0) + 2, max(sx, sx + sw), P(r1) - 3], fill=(250, 250, 246))
     d.line([sx, P(r0) + 2, sx, P(r1) - 3], fill=blanket_d)
 
-def dog(c, r):
-    """Dog curled up on a round bed."""
+def dog_bed(c, r):
+    """Round dog bed. The dog itself is drawn live by the card so it can wander."""
     x, y = P(c), P(r)
     d.ellipse([x - 13, y - 10, x + 13, y + 10], fill=(120, 80, 60), outline=PAL['outline'])
     d.ellipse([x - 10, y - 7, x + 10, y + 7], fill=(170, 130, 100))
-    fur, fur_d = (210, 160, 96), (170, 120, 64)
-    d.ellipse([x - 9, y - 6, x + 6, y + 6], fill=fur, outline=PAL['outline'])          # body
-    d.ellipse([x + 1, y - 7, x + 10, y + 2], fill=fur, outline=PAL['outline'])         # head
-    d.ellipse([x + 1, y - 7, x + 4, y - 1], fill=fur_d)                               # ears
-    d.ellipse([x + 7, y - 7, x + 10, y - 1], fill=fur_d)
-    d.point([(x + 4, y - 3), (x + 7, y - 3)], fill=(30, 24, 20))
-    d.rectangle([x + 5, y, x + 6, y + 1], fill=(40, 30, 26))                           # nose
-    d.arc([x - 12, y - 2, x - 2, y + 8], 90, 240, fill=fur_d, width=2)                # tail
+    d.ellipse([x - 8, y - 5, x + 8, y + 5], fill=(186, 148, 116))
 
 def tub(c0, r0, c1, r1):
     box(c0, r0, c1, r1, (244, 244, 248))
@@ -787,7 +780,7 @@ washer_dryer_stack(101.4, 27, 106, 35)
 box(53, 55.2, 57, 56.6, (150, 110, 70))                                 # door mat
 box(26, 71, 32, 73, (150, 100, 60), hi=(180, 130, 90))                   # porch bench
 plant(25, 78.5); plant(58.5, 78.5); plant(52, 68)
-dog(41.5, 18)
+dog_bed(41.5, 18)
 # yard
 mailbox(62.5, 84)
 for (c, r) in [(15, 81), (17, 82.5), (30, 2)]:

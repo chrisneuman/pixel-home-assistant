@@ -186,6 +186,14 @@ lights:
 
 # Window blinds (Home Assistant cover entities). The window spans cols c0..c1 on wall row `row`.
 covers:
+  - id: living_blinds
+    name: Living room blinds
+    room: living
+    entity: cover.living_room_blinds
+    row: 4
+    c0: 40
+    c1: 50
+
   - id: m_bedroom_blinds
     name: M bedroom blinds
     room: m_bedroom
@@ -210,6 +218,18 @@ covers:
     c0: 18
     c1: 25
 
+  # Garage door: shows open/closed on the map and starts blinking once it has been open
+  # `alert_after_min` minutes (HA's last_changed on the cover). See ha/garage_door_alert.yaml for the phone alert.
+  - id: garage_door
+    name: Garage door
+    room: garage
+    entity: cover.garage_door
+    kind: garage
+    row: 75
+    c0: 68
+    c1: 97
+    alert_after_min: 35
+
 # Ceiling fans, controlled separately from their light kits (listed above as *_fan_light).
 # Tap the blades to toggle the fan, the center to toggle its light.
 fans:
@@ -227,3 +247,26 @@ fans:
     x: 17.0
     y: 61.0
     blade: [196, 182, 170]
+
+# Day and night: the outside light follows the sun's elevation (HA sun.sun), and rain shows on the
+# yard, deck and driveway when the weather entity says it's raining.
+# latitude/longitude are only used by the offline preview (rough central US placeholder); in HA, sun.sun already knows.
+sky:
+  sun: sun.sun
+  weather: weather.home
+  latitude: 39.0
+  longitude: -94.6
+
+# The dog wanders between these spots (cells) and naps on its bed.
+dog:
+  name: Dog
+  bed: {x: 41.5, y: 18}
+  spots:
+    - {x: 70, y: 22}     # under the dining table
+    - {x: 92, y: 16}     # kitchen, hoping for crumbs
+    - {x: 96, y: 31}     # mud room door
+    - {x: 56, y: 50}     # front door
+    - {x: 30, y: 46}     # hallway
+    - {x: 40, y: 56}     # M's room
+    - {x: 22, y: 58}     # G's room
+    - {x: 26, y: 24}     # foot of the master bed
