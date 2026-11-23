@@ -10,7 +10,7 @@ image: main-floor.png
 layout: main-floor.json
 
 # Tap targets for the room view. Each groups one or more layout rooms (from main-floor.json);
-# "outside" covers the yard, deck and driveway.
+# "outside" covers the front porch, yard, deck and driveway.
 rooms:
   # open plan: living, dining and kitchen act as one room, with the hall, foyer and accent strip
   - {id: living,      name: "Living, kitchen & dining", includes: [living, stairs, dining, kitchen, hall, front_closet]}
@@ -21,8 +21,7 @@ rooms:
   - {id: m_bedroom,   name: M's room,     includes: [m_bedroom, m_closet]}
   - {id: mud_room,    name: Mud room,     includes: [mud_room]}
   - {id: garage,      name: Garage,       includes: [garage]}
-  - {id: porch,       name: Porch,        includes: [porch]}
-  - {id: outside,     name: Outside,      includes: [outside]}
+  - {id: outside,     name: Outside,      includes: [outside, porch]}   # front porch, yard, deck and driveway
 
 lights:
   - id: dining
