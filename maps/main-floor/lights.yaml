@@ -1,5 +1,5 @@
 # Main floor lights, traced from the white dots on the Floorplanner export.
-# x / y are map cells (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
+# x / y are map cells (or a `fixtures` list of x/y when one entity drives several fixtures) (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
 # entity: placeholder Home Assistant ids. Replace each with the real one
 #   (Settings > Devices & services > Entities, or Developer tools > States).
 # radius: how far the glow reaches, in cells. Glow never passes through walls or closed doors.
@@ -113,21 +113,30 @@ lights:
     y: 52.7
     radius: 32
 
-  - id: porch_left
-    name: Porch left
+  - id: porch
+    name: Porch lights
     room: porch
-    entity: light.porch_left
-    x: 52.5
-    y: 63.0
+    entity: light.porch
     radius: 18
+    fixtures:            # one entity, two fixtures
+      - {x: 52.5, y: 63.0}
+      - {x: 59.6, y: 63.8}
 
-  - id: porch_right
-    name: Porch right
-    room: porch
-    entity: light.porch_right
-    x: 59.6
-    y: 63.8
-    radius: 18
+  - id: master_fan_light
+    name: Master fan light
+    room: master
+    entity: light.master_fan
+    x: 19.7
+    y: 16.8
+    radius: 26
+
+  - id: g_room_fan_light
+    name: G room fan light
+    room: g_room
+    entity: light.g_room_fan
+    x: 15.4
+    y: 63.0
+    radius: 22
 
   - id: back_door
     name: Back exterior
@@ -137,24 +146,16 @@ lights:
     y: 3.4
     radius: 12
 
-  - id: garage_front_left
-    name: Garage front left
+  - id: garage_front
+    name: Garage front
     room: outside
-    entity: light.garage_front_left
-    x: 66.3
-    y: 77.8
+    entity: light.garage_front
     radius: 12
+    fixtures:            # one entity, two fixtures on either side of the garage door
+      - {x: 66.3, y: 77.8}
+      - {x: 100.2, y: 77.6}
 
-  - id: garage_front_right
-    name: Garage front right
-    room: outside
-    entity: light.garage_front_right
-    x: 100.2
-    y: 77.6
-    radius: 12
-
-# Ceiling fans drawn on the plan. Not white dots, so not counted as lights yet.
-# If a fan has a light kit, move it up into `lights` with its light entity.
+# Ceiling fans. Both also have a light kit, listed above as *_fan_light.
 fans:
   - id: master_fan
     name: Master fan

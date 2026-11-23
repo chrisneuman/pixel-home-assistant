@@ -10,7 +10,7 @@ Plan: a standalone web component that runs as a Home Assistant custom card first
 `maps/main-floor/`
 - `main-floor.png` – the base art (888×704, 8 px per cell, 1 cell = 6 inches). Placeholder quality; repaint freely as long as the size stays the same.
 - `main-floor.json` – the tile grid (walls, doors, windows, floors) and room rectangles. The renderer uses it so light never glows through walls or closed doors.
-- `lights.yaml` – every light: name, room, map position and a **placeholder** Home Assistant entity id. Replace the `entity:` values with your real ones.
+- `lights.yaml` – every light: name, room, map position (or several `fixtures` when one entity drives more than one) and a **placeholder** Home Assistant entity id. Replace the `entity:` values with your real ones.
 - `preview.html` – self-contained interactive preview with mock state. Open it in a browser and tap a light.
 - `build_map.py` – generates the PNG and JSON from the traced layout and sprite code.
 - `build_preview.py` – inlines the PNG, JSON and YAML into `preview.html`.
