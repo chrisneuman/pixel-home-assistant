@@ -43,6 +43,12 @@ srv.listen(0, async () => {
   ok((await sh('.dev.na').count()) >= 1, 'sink light shows unavailable');
   await sh('[data-light="kitchen_sink"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200);
   ok((await p.evaluate('window.calls')).length === n0, 'no call for unavailable light');
+  await sh('#back').click(); await p.waitForTimeout(400);
+  await sh('[data-room="outside"]').click(); await p.waitForTimeout(600);
+  await sh('[data-fxcolor="porch"][data-k="1"]').nth(2).click(); await p.waitForTimeout(300);
+  calls = await p.evaluate('window.calls');
+  ok(calls.at(-1)[2].entity_id === 'light.porch_rgb_2' && calls.at(-1)[1] === 'turn_on' && !calls.some(c => c[2].entity_id === 'switch.porch'), 'porch right bulb color -> light.porch_rgb_2 only: ' + JSON.stringify(calls.at(-1)));
+  await p.screenshot({ path: `${OUT}/card-porch.png` });
   // garage door open 40 min -> alert banner
   await sh('#back').click(); await p.waitForTimeout(400);
   await p.evaluate(() => setState('cover.garage_door', { state: 'open', last_changed: new Date(Date.now() - 40 * 60000).toISOString() }));

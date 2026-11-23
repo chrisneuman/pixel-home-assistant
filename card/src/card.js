@@ -39,6 +39,7 @@ class PixelHouseCard extends HTMLElement {
     const withIds = list => (list || []).map(d => over[d.id] ? { ...d, entity: over[d.id] } : d);
     const CONFIG = { ...base.CONFIG, lights: withIds(base.CONFIG.lights), covers: withIds(base.CONFIG.covers), fans: withIds(base.CONFIG.fans) };
     this._watch = [...CONFIG.lights, ...CONFIG.covers, ...CONFIG.fans].map(d => d.entity).filter(Boolean);
+    for (const l of CONFIG.lights) for (const f of l.fixtures || []) if (f.color_entity) this._watch.push(f.color_entity);
     if (CONFIG.sky) this._watch.push(CONFIG.sky.sun || 'sun.sun', CONFIG.sky.weather);
     this._watch = this._watch.filter(Boolean);
     const root = this.shadowRoot || this.attachShadow({ mode: 'open' });

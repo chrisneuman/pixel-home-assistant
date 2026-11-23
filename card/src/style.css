@@ -53,5 +53,6 @@ input[type=color]{width:44px;height:36px;padding:0;border:2px solid var(--edge);
 ha-card{overflow:hidden;background:var(--bg);border-radius:var(--ha-card-border-radius,12px)}
 .pos{grid-column:2/4;display:flex;align-items:center;gap:10px;color:var(--dim);font-size:13px;margin-top:6px}
 .pos input{flex:1;min-height:36px;accent-color:var(--on)}
+.clab{width:100%;color:var(--dim);font-size:13px}
 .empty{color:var(--dim);font-size:14px;padding:8px 0}
 .dev.na{opacity:.5}.dev.na .sw,.dev.na .seg button{pointer-events:none}

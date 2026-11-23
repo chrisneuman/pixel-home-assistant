@@ -146,9 +146,9 @@ lights:
     room: porch
     entity: switch.porch
     radius: 18
-    fixtures:            # one entity, two fixtures
-      - {x: 52.5, y: 63.4}
-      - {x: 59.6, y: 63.4}
+    fixtures:            # one switch, two fixtures; each holds an RGB bulb whose color can be set (the switch stays as it is)
+      - {x: 52.5, y: 63.4, color_entity: light.porch_rgb_1, label: Left bulb}
+      - {x: 59.6, y: 63.4, color_entity: light.porch_rgb_2, label: Right bulb}
 
   - id: castle_lights
     name: Castle lights
@@ -188,9 +188,9 @@ lights:
     room: outside
     entity: switch.outdoor1
     radius: 12
-    fixtures:            # one entity, two fixtures on either side of the garage door
-      - {x: 66.3, y: 77.8}
-      - {x: 100.2, y: 77.6}
+    fixtures:            # one switch, two fixtures on either side of the garage door, each with an RGB bulb
+      - {x: 66.3, y: 77.8, color_entity: light.garage_front_rgb3, label: Left bulb}
+      - {x: 100.2, y: 77.6, color_entity: light.garage_front_rgb4, label: Right bulb}
 
 # Window blinds (Home Assistant cover entities). The window spans cols c0..c1 on wall row `row`.
 covers:

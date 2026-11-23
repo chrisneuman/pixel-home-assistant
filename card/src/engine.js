@@ -22,7 +22,7 @@ const tiles = LAYOUT.tiles;
 // a light may drive several fixtures (e.g. two garage lanterns on one switch)
 const lights = CONFIG.lights.map((l, i) => ({
   ...l, on: false, level: 0,
-  fx: stripPoints(l) || (l.fixtures || [{ x: l.x, y: l.y }]).map((f, k) => ({ x: f.x, y: f.y, radius: f.radius || l.radius, phase: i * 1.7 + k * .9 })),
+  fx: stripPoints(l) || (l.fixtures || [{ x: l.x, y: l.y }]).map((f, k) => ({ x: f.x, y: f.y, radius: f.radius || l.radius, phase: i * 1.7 + k * .9, color_entity: f.color_entity, label: f.label || `Bulb ${k + 1}` })),
   tint: l.color ? `rgb(${l.color})` : 'rgb(255,190,80)',
 }));
 // an LED strip glows as a row of small lights spaced along it
@@ -506,7 +506,7 @@ function paint(now, dt = 16) {
     ctx.globalAlpha = (l.strip ? 0.16 : 0.24) * (.35 + .65 * amb.night);   // glow reads less in daylight
     for (const f of l.fx) {
       const flick = 1 + 0.025 * Math.sin(now / 420 + f.phase);
-      ctx.drawImage(maskedLight(f, e, flick * .85, l.tint), 0, 0);
+      ctx.drawImage(maskedLight(f, e, flick * .85, f.tint || l.tint), 0, 0);
     }
   }
   ctx.globalAlpha = 1;
@@ -701,6 +701,8 @@ function roomPanel(id) {
     rows.push(`<div class="dev${l.on ? ' on' : ''}${l.na ? ' na' : ''}">${ICON[l.strip ? 'strip' : 'bulb'].replaceAll('fill="C"', `fill="${l.on ? col : '#77708a'}"`)}
       <div class="nm">${l.name}<small>${l.na ? 'Unavailable' : l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
       <button class="sw" aria-label="${l.name}" aria-pressed="${l.on}" data-light="${l.id}"></button>
+      ${l.fx.filter(f => f.color_entity).map((f, k) => `<div class="chips"><span class="clab">${f.label}</span>${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} ${f.label} color" aria-pressed="${hex(p) === hex(f.color || [])}" data-fxcolor="${l.id}" data-k="${l.fx.indexOf(f)}" data-v="${hex(p)}"></button>`).join('')}
+        <input type="color" aria-label="${f.label} custom color" value="${hex(f.color || [255, 220, 90])}" data-fxpick="${l.id}" data-k="${l.fx.indexOf(f)}"></div>`).join('')}
       ${l.rgb ? `<div class="chips">${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} color" aria-pressed="${hex(p) === hex(l.color || [])}" data-color="${l.id}" data-v="${hex(p)}"></button>`).join('')}
         <input type="color" aria-label="Custom color" value="${hex(l.color || [255, 220, 90])}" data-pick="${l.id}"></div>` : ''}
     </div>`);
@@ -741,6 +743,13 @@ function bindPanel() {
   const ck = side.querySelector('#clock'); if (ck) ck.oninput = e => { clockMode = 'set'; clockHour = +e.target.value; side.querySelector('#skyst').textContent = skyText(); side.querySelector('#live').setAttribute('aria-pressed', 'false'); paint(performance.now()); };
   const lv = side.querySelector('#live'); if (lv) lv.onclick = () => { clockMode = 'live'; render(); };
   const setColor = (id, v, send) => { const l = lights.find(x => x.id === id); l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; if (send) act('light', l, true, { rgb_color: l.color }); };
+  const setFx = (id, k, v) => {                        // color one bulb; never touches the switch that powers it
+    const l = lights.find(x => x.id === id), f = l.fx[+k];
+    f.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); f.tint = `rgb(${f.color})`;
+    if (bridge.call) bridge.call('light', 'turn_on', { entity_id: f.color_entity, rgb_color: f.color });
+  };
+  $('[data-fxcolor]').forEach(b => b.onclick = () => { setFx(b.dataset.fxcolor, b.dataset.k, b.dataset.v); render(); });
+  $('[data-fxpick]').forEach(i => { i.onchange = () => { setFx(i.dataset.fxpick, i.dataset.k, i.value); render(); }; });
   $('[data-color]').forEach(b => b.onclick = () => { setColor(b.dataset.color, b.dataset.v, true); render(); });
   $('[data-pick]').forEach(i => { i.oninput = () => setColor(i.dataset.pick, i.value); i.onchange = () => { setColor(i.dataset.pick, i.value, true); render(); }; });
   const lb = side.querySelector('#labels'); if (lb) lb.onchange = e => { showLabels = e.target.checked; paint(performance.now()); };
@@ -756,6 +765,7 @@ function setStates(states, first) {
     const s = st(l.entity); l.na = !s || s.state === 'unavailable';
     l.on = !!s && s.state === 'on';
     const rgb = s && s.attributes && s.attributes.rgb_color; if (rgb && l.rgb) { l.color = rgb; l.tint = `rgb(${rgb})`; }
+    for (const f of l.fx) { const c = f.color_entity && st(f.color_entity); const v = c && c.attributes && c.attributes.rgb_color; if (v) { f.color = v; f.tint = `rgb(${v})`; } }
     if (first) l.level = l.on ? 1 : 0;
   }
   for (const f of fans) { const s = st(f.entity); f.na = !s || s.state === 'unavailable'; f.on = !!s && s.state === 'on'; if (first) f.speed = f.on ? 1 : 0; }

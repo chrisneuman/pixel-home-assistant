@@ -26,4 +26,8 @@
 "fan.master_bedroom_master_bedroom_fan_fan":{"state":"on","attributes":{},"last_changed":"2026-11-14T17:59:00-06:00"},
 "fan.ceiling_fan":{"state":"off","attributes":{},"last_changed":"2026-10-16T20:43:38-05:00"},
 "sun.sun":{"state":"above_horizon","attributes":{"elevation":5.44},"last_changed":"2026-11-23T06:59:19-06:00"},
-"weather.home":{"state":"cloudy","attributes":{},"last_changed":"2026-11-23T15:12:03-06:00"}}
+"weather.home":{"state":"cloudy","attributes":{},"last_changed":"2026-11-23T15:12:03-06:00"},
+"light.porch_rgb_1":{"state":"on","attributes":{"supported_color_modes":["color_temp","xy"],"rgb_color":[255,216,116]},"last_changed":"2026-11-23T17:00:00-06:00"},
+"light.porch_rgb_2":{"state":"on","attributes":{"supported_color_modes":["color_temp","xy"],"rgb_color":[255,244,16]},"last_changed":"2026-11-23T17:00:00-06:00"},
+"light.garage_front_rgb3":{"state":"on","attributes":{"rgb_color":[255,200,120]},"last_changed":"2026-11-23T17:00:00-06:00"},
+"light.garage_front_rgb4":{"state":"on","attributes":{"rgb_color":[255,200,120]},"last_changed":"2026-11-23T17:00:00-06:00"}}
