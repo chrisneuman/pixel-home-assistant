@@ -343,7 +343,7 @@ function drawStrip(l, t, now) {
   const horiz = Math.abs(bx - ax) >= Math.abs(by - ay);
   ctx.fillStyle = '#1e1826';
   if (horiz) ctx.fillRect(Math.min(ax, bx) - 1, ay - 2, Math.abs(bx - ax) + 2, 4); else ctx.fillRect(ax - 2, Math.min(ay, by) - 1, 4, Math.abs(by - ay) + 2);
-  const off = [150, 146, 160], on = l.color || [255, 220, 90];
+  const off = [150, 146, 160], on = l.color ? vivid(l.color) : [255, 220, 90];
   const n = Math.round(Math.hypot(bx - ax, by - ay) / 3);
   for (let k = 0; k <= n; k++) {                                     // individual LEDs, chasing shimmer when on
     const px = Math.round(ax + (bx - ax) * k / n), py = Math.round(ay + (by - ay) * k / n);
@@ -379,10 +379,12 @@ function drawPendants(f, t) {
   }
 }
 
+// push a color away from grey so a picked bulb color reads clearly on the map
+function vivid(c) { const m = (c[0] + c[1] + c[2]) / 3; return c.map(v => Math.max(0, Math.min(255, Math.round(m + (v - m) * 1.6)))); }
 function drawBulb(l, t, now) {
   const x = Math.round(l.x * CELL), y = Math.round(l.y * CELL);
   ctx.fillStyle = '#1e1826'; ctx.fillRect(x - 4, y - 3, 8, 6); ctx.fillRect(x - 3, y - 4, 6, 8);
-  const off = [176, 172, 186], on = [255, 220, 90];
+  const off = [176, 172, 186], on = l.color ? vivid(l.color) : [255, 220, 90];
   const mix = off.map((v, i) => Math.round(v + (on[i] - v) * t));
   ctx.fillStyle = `rgb(${mix})`; ctx.fillRect(x - 3, y - 2, 6, 4); ctx.fillRect(x - 2, y - 3, 4, 6);
   ctx.fillStyle = t > .5 ? '#fffbe6' : '#e4e2ea'; ctx.fillRect(x - 2, y - 2, 2, 2);
@@ -507,10 +509,12 @@ function paint(now, dt = 16) {
   for (const l of lights) {
     if (l.level <= 0) continue;
     const e = l.level * l.level * (3 - 2 * l.level);
-    ctx.globalAlpha = (l.strip ? 0.16 : 0.24) * (.35 + .65 * amb.night);   // glow reads less in daylight
+    const day = .35 + .65 * amb.night;                                   // glow reads less in daylight
     for (const f of l.fx) {
       const flick = 1 + 0.025 * Math.sin(now / 420 + f.phase);
-      ctx.drawImage(maskedLight(f, e, flick * .85, f.tint || l.tint), 0, 0);
+      const c = f.color || (l.rgb && l.color);                          // a picked color glows stronger and more saturated
+      ctx.globalAlpha = (c ? (l.strip ? 0.42 : 0.55) : (l.strip ? 0.16 : 0.24)) * (c ? .6 + .4 * amb.night : day);
+      ctx.drawImage(maskedLight(f, e, flick * .85, c ? `rgb(${vivid(c)})` : (f.tint || l.tint)), 0, 0);
     }
   }
   ctx.globalAlpha = 1;
