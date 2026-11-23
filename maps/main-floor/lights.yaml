@@ -9,6 +9,23 @@ floor: main
 image: main-floor.png
 layout: main-floor.json
 
+# Tap targets for the room view. Each groups one or more layout rooms (from main-floor.json);
+# "outside" covers the yard, deck and driveway.
+rooms:
+  - {id: living,      name: Living room,  includes: [living, stairs]}
+  - {id: dining,      name: Dining room,  includes: [dining]}
+  - {id: kitchen,     name: Kitchen,      includes: [kitchen]}
+  - {id: hall,        name: Hall & entry, includes: [hall, front_closet]}
+  - {id: master,      name: Master,       includes: [master, master_closet]}
+  - {id: master_bath, name: Master bath,  includes: [master_bath]}
+  - {id: main_bath,   name: Main bath,    includes: [main_bath]}
+  - {id: g_room,      name: G's room,     includes: [g_room, g_closet]}
+  - {id: m_bedroom,   name: M's room,     includes: [m_bedroom, m_closet]}
+  - {id: mud_room,    name: Mud room,     includes: [mud_room]}
+  - {id: garage,      name: Garage,       includes: [garage]}
+  - {id: porch,       name: Porch,        includes: [porch]}
+  - {id: outside,     name: Outside,      includes: [outside]}
+
 lights:
   - id: living
     name: Living room

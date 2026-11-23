@@ -3,7 +3,7 @@
 A top-down pixel art map of the house (think early Zelda / Pokemon) that shows and toggles Home Assistant devices.
 Plan: a standalone web component that runs as a Home Assistant custom card first, with a standalone site possible later.
 
-![Main floor, some lights on](docs/preview-mixed.png)
+![Main floor on desktop](docs/preview-desktop.png)
 
 ## What's here so far
 
@@ -22,6 +22,10 @@ cd maps/main-floor
 python3 build_map.py      # needs Pillow
 python3 build_preview.py  # needs PyYAML
 ```
+
+## Controls
+
+Tap a room to zoom into it. A panel lists everything in that room as big toggles: lights, fans, blinds, and color presets for RGB strips. It sits below the map on a phone and beside it on desktop. You can also tap fixtures directly on the zoomed map. Long-press a room on the overview to toggle all its lights. Rooms are defined under `rooms:` in `lights.yaml`.
 
 ## How lights render
 

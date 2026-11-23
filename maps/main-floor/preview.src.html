@@ -4,39 +4,68 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Main floor map preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: dark; }
-  body { margin: 0; background: #1b1724; color: #f2ead8; font: 14px/1.4 ui-monospace, Menlo, Consolas, monospace; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 12px; }
-  h1 { font-size: 16px; margin: 4px 0 10px; letter-spacing: .5px; }
-  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-  button { font: inherit; background: #3a2f48; color: #f2ead8; border: 2px solid #120e18; box-shadow: inset 0 -3px 0 #241d2e;
-           padding: 6px 12px; cursor: pointer; }
-  button:active { transform: translateY(1px); box-shadow: none; }
-  label { display: inline-flex; gap: 6px; align-items: center; }
-  .stage { position: relative; border: 4px solid #120e18; background: #000; line-height: 0; }
-  canvas { width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; cursor: pointer; }
-  .tip { position: absolute; pointer-events: none; background: #120e18; color: #ffe9a8; padding: 3px 6px; font-size: 12px; line-height: 1.2;
-         transform: translate(-50%, -140%); white-space: nowrap; display: none; border: 2px solid #4b3d5c; }
-  .legend { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 12px; }
-  .legend div { cursor: pointer; }
-  .dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border: 2px solid #120e18; background: #77708a; vertical-align: -2px; }
-  .on .dot { background: #ffd95a; box-shadow: 0 0 6px #ffd95a; }
-  .note { opacity: .7; margin-top: 10px; font-size: 12px; }
+/* VOICE: a cozy 16-bit game menu for the house. IDEA: the map is the overworld; tapping a room opens its inventory.
+   PICTURE: the live pixel map, zooming into the chosen room. COLOUR/TYPE: night purple UI, warm lamp yellow accent, Pixelify Sans headings.
+   LAYOUT: phone = map on top, controls below; desktop = map left, panel right. */
+:root{color-scheme:dark;--bg:#1b1724;--panel:#251f31;--ink:#f2ead8;--dim:#a99fba;--edge:#120e18;--btn:#3a2f48;--on:#ffd95a;--onink:#2a1f08}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:clip}
+.app{max-width:1240px;margin:0 auto;padding:10px;display:grid;gap:12px}
+@media(min-width:900px){.app{grid-template-columns:minmax(0,1fr) 340px;align-items:start;padding:16px}.side{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}}
+h1,h2{font-family:"Pixelify Sans",ui-monospace,monospace;font-weight:700;margin:0;line-height:1.1}
+h1{font-size:22px}h2{font-size:24px}
+.stage{position:relative;border:4px solid var(--edge);background:#0c0a12;overflow:hidden;line-height:0;aspect-ratio:888/704;touch-action:manipulation}
+.stage canvas{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;image-rendering:pixelated;image-rendering:crisp-edges;transition:transform .38s cubic-bezier(.2,.8,.2,1);cursor:pointer}
+@media(prefers-reduced-motion:reduce){.stage canvas{transition:none}}
+.crumb{position:absolute;left:8px;top:8px;line-height:1.2;display:none}
+.crumb button{min-height:40px;padding:6px 12px;font-size:15px}
+.hint{position:absolute;right:8px;bottom:8px;line-height:1.2;font-size:13px;background:rgba(18,14,24,.85);padding:4px 8px;border:2px solid #4b3d5c;color:var(--dim);pointer-events:none}
+.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);line-height:1.2;background:var(--edge);color:var(--on);border:2px solid #4b3d5c;padding:6px 10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.side{background:var(--panel);border:4px solid var(--edge);padding:14px}
+.top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
+.sub{color:var(--dim);font-size:14px;margin-top:2px}
+button{font:inherit;color:var(--ink);background:var(--btn);border:2px solid var(--edge);box-shadow:inset 0 -3px 0 #241d2e;padding:8px 14px;cursor:pointer;min-height:44px}
+button:active{transform:translateY(1px);box-shadow:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--on);outline-offset:2px}
+.list{display:grid;gap:8px}
+.rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.rooms .room{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:64px}
+.room{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;min-height:52px}
+.room .st{color:var(--dim);font-size:14px;white-space:nowrap}
+.room.lit .st{color:var(--on)}
+.dev{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;background:#2e263c;border:2px solid var(--edge);padding:8px 10px;min-height:60px}
+.dev .nm{font-weight:600;line-height:1.2}
+.dev .nm small{display:block;color:var(--dim);font-weight:400;font-size:13px;margin-top:2px}
+.dev.on .nm small{color:var(--on)}
+.ico{width:32px;height:32px;image-rendering:pixelated}
+.sw{width:64px;height:36px;padding:0;position:relative;background:#120e18;box-shadow:none;border:2px solid #4b3d5c}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;background:#77708a;transition:left .15s,background .15s}
+.sw[aria-pressed=true]{background:#5a4a14;border-color:var(--on)}
+.sw[aria-pressed=true]::after{left:32px;background:var(--on)}
+.seg{display:flex;gap:6px}.seg button{min-width:64px;padding:8px 10px}
+.seg button[aria-pressed=true]{background:var(--on);color:var(--onink);border-color:var(--edge)}
+.chips{grid-column:2/4;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+.chip{width:36px;height:36px;min-height:0;padding:0;border:2px solid var(--edge)}
+.chip[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:1px}
+input[type=color]{width:44px;height:36px;padding:0;border:2px solid var(--edge);background:none}
+.row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.row2 label{display:inline-flex;gap:8px;align-items:center;color:var(--dim);font-size:14px}
+.note{color:var(--dim);font-size:13px;margin-top:12px}
+.empty{color:var(--dim);font-size:14px;padding:8px 0}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Main floor &middot; tap a light to toggle it</h1>
-  <div class="bar">
-    <button id="allOn">All on</button>
-    <button id="allOff">All off</button>
-    <label>Night <input id="dark" type="range" min="0" max="0.8" step="0.05" value="0.55"></label>
-    <label><input id="labels" type="checkbox"> Room labels</label>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div class="crumb" id="crumb"><button id="back">&lsaquo; Whole house</button></div>
+    <div class="hint" id="hint">Tap a room</div>
+    <div class="toast" id="toast"></div>
   </div>
-  <div class="stage" id="stage"><canvas id="c"></canvas><div class="tip" id="tip"></div></div>
-  <div class="legend" id="legend"></div>
-  <div class="note">Preview with mock state. In Home Assistant the same renderer reads each light's real state and toggles it on tap.</div>
+  <aside class="side" id="side" aria-live="polite"></aside>
 </div>
 <script>
 const LAYOUT = /*LAYOUT*/null;
@@ -61,7 +90,7 @@ function stripPoints(l) {
   const { x0, y0, x1, y1 } = l.strip, len = Math.hypot(x1 - x0, y1 - y0), n = Math.max(2, Math.ceil(len / 3));
   return Array.from({ length: n + 1 }, (_, k) => ({ x: x0 + (x1 - x0) * k / n, y: y0 + (y1 - y0) * k / n, radius: l.radius, phase: k * .5, strip: true }));
 }
-let darkness = 0.55, showLabels = false;
+let darkness = 0.55, showLabels = false, sel = null, focusMask = null;
 const covers = (CONFIG.covers || []).map(c => ({ ...c, closed: false, level: 0 }));
 const fans = (CONFIG.fans || []).map((f, i) => ({ ...f, on: false, speed: 0, angle: i * .4 }));
 
@@ -265,7 +294,7 @@ function paint(now) {
   for (const l of lights) {
     if (l.level <= 0) continue;
     const e = l.level * l.level * (3 - 2 * l.level);
-    ctx.globalAlpha = l.strip ? 0.22 : 0.32;
+    ctx.globalAlpha = l.strip ? 0.16 : 0.24;
     for (const f of l.fx) {
       const flick = 1 + 0.025 * Math.sin(now / 420 + f.phase);
       ctx.drawImage(maskedLight(f, e, flick * .85, l.tint), 0, 0);
@@ -278,91 +307,206 @@ function paint(now) {
     else for (const f of l.fx) drawBulb(f, l.level, now);
   }
   for (const cv of covers) drawBlinds(cv);
+  if (sel && focusMask) ctx.drawImage(focusMask, 0, 0);
   if (showLabels) drawLabels();
 }
 
-// ---- interaction
-function hit(ev) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) / rect.width * W, y = (ev.clientY - rect.top) / rect.height * H;
-  // fan blades (a ring around the hub) toggle the fan; the hub itself is the light
-  for (const f of fans) {
-    const dd = Math.hypot(f.x - x, f.y - y);
-    if (dd > 1.1 && dd < 3.4) return { fan: f, f: { x: f.x, y: f.y - 2 } };
-  }
-  let best = null, bd = 3.2;
-  for (const l of lights) for (const f of l.fx) {
-    const dd = Math.hypot(f.x - x, f.y - y);
-    if (dd < bd) { bd = dd; best = { light: l, f }; }
-  }
-  for (const cv of covers) {
-    const cx = (cv.c0 + cv.c1 + 1) / 2, cy = cv.row + 1;
-    const dd = Math.hypot((cx - x) / ((cv.c1 - cv.c0 + 1) / 2 + 1), (cy - y) / 2);
-    if (dd < 1 && !best) best = { cover: cv, f: { x: cx, y: cy } };
-  }
-  return best;
-}
-const tip = document.getElementById('tip');
-canvas.addEventListener('click', ev => { const h = hit(ev); if (!h) return; if (h.fan) { h.fan.on = !h.fan.on; renderLegend(); } else if (h.cover) { h.cover.closed = !h.cover.closed; renderLegend(); } else toggle(h.light); });
-canvas.addEventListener('mousemove', ev => {
-  const h = hit(ev);
-  if (!h) { tip.style.display = 'none'; return; }
-  const l = h.light || (h.fan ? { name: h.fan.name, on: h.fan.on } : { name: h.cover.name, on: !h.cover.closed });
-  const rect = canvas.getBoundingClientRect();
-  tip.style.display = 'block';
-  tip.style.left = (h.f.x / W * rect.width + 4) + 'px';
-  tip.style.top = (h.f.y / H * rect.height + 4) + 'px';
-  tip.textContent = h.cover ? `${l.name} · ${h.cover.closed ? 'closed' : 'open'}` : `${l.name} · ${l.on ? 'on' : 'off'}`;
+
+// ---- rooms: groups of layout rooms that act as tap targets
+const ROOMS = (CONFIG.rooms || LAYOUT.rooms.map(r => ({ id: r.id, name: r.name, includes: [r.id] })));
+const groupOf = {};                       // layout room id -> group id
+for (const g of ROOMS) for (const r of g.includes) groupOf[r] = g.id;
+const roomGrid = new Array(W * H).fill(null);
+for (const r of LAYOUT.rooms) for (const [c0, r0, c1, r1] of r.rects)
+  for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) roomGrid[y * W + x] = groupOf[r.id] || null;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+  if (!roomGrid[y * W + x] && OUTDOOR.has(tiles[y][x]) && groupOf.outside !== undefined) roomGrid[y * W + x] = 'outside';
+const devRoom = d => groupOf[d.room] || d.room;
+const inRoom = id => ({
+  lights: lights.filter(l => devRoom(l) === id),
+  fans: fans.filter(f => devRoom(f) === id),
+  covers: covers.filter(c => devRoom(c) === id),
 });
-canvas.addEventListener('mouseleave', () => tip.style.display = 'none');
-
-const legend = document.getElementById('legend');
-function renderLegend() {
-  legend.innerHTML = '';
-  for (const l of lights) {
-    const el = document.createElement('div');
-    el.className = l.on ? 'on' : '';
-    el.innerHTML = `<span class="dot"></span>${l.name}`;
-    el.onclick = () => toggle(l);
-    if (l.rgb) {
-      const pick = document.createElement('input');
-      pick.type = 'color'; pick.title = 'Strip color';
-      pick.value = '#' + (l.color || [255, 220, 90]).map(v => v.toString(16).padStart(2, '0')).join('');
-      pick.style.cssText = 'width:22px;height:16px;padding:0;border:0;margin-left:6px;vertical-align:-3px;background:none';
-      pick.onclick = e => e.stopPropagation();
-      pick.oninput = e => { const v = e.target.value; l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; };
-      el.appendChild(pick);
+function roomAt(x, y) {                   // map cell -> room group (walls snap to the nearest room)
+  const cx = Math.floor(x), cy = Math.floor(y);
+  for (let rad = 0; rad <= 2; rad++)
+    for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+      const g = roomGrid[(cy + dy) * W + (cx + dx)];
+      if (g && cy + dy >= 0 && cy + dy < H && cx + dx >= 0 && cx + dx < W) return g;
     }
-    legend.appendChild(el);
-  }
-  for (const f of fans) {
-    const el = document.createElement('div');
-    el.className = f.on ? 'on' : '';
-    el.innerHTML = `<span class="dot"></span>${f.name} (fan)`;
-    el.onclick = () => { f.on = !f.on; renderLegend(); };
-    legend.appendChild(el);
-  }
-  for (const cv of covers) {
-    const el = document.createElement('div');
-    el.className = cv.closed ? '' : 'on';
-    el.innerHTML = `<span class="dot"></span>${cv.name} (${cv.closed ? 'closed' : 'open'})`;
-    el.onclick = () => { cv.closed = !cv.closed; renderLegend(); };
-    legend.appendChild(el);
-  }
+  return null;
 }
-function toggle(l, v) { l.on = v === undefined ? !l.on : v; renderLegend(); }
-document.getElementById('allOn').onclick = () => { lights.forEach(l => l.on = true); renderLegend(); };
-document.getElementById('allOff').onclick = () => { lights.forEach(l => l.on = false); renderLegend(); };
-document.getElementById('dark').oninput = e => { darkness = +e.target.value; paint(performance.now()); };
-document.getElementById('labels').onchange = e => { showLabels = e.target.checked; paint(performance.now()); };
+function roomBox(id) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  const grow = (a, b, c, d) => { x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, c); y1 = Math.max(y1, d); };
+  const g = ROOMS.find(r => r.id === id);
+  if (id !== 'outside') for (const r of LAYOUT.rooms) if (g.includes.includes(r.id)) for (const [c0, r0, c1, r1] of r.rects) grow(c0, r0, c1 + 1, r1 + 1);
+  const d = inRoom(id);
+  for (const l of d.lights) for (const f of l.fx) grow(f.x - 2, f.y - 2, f.x + 2, f.y + 2);
+  for (const f of d.fans) grow(f.x - 3, f.y - 3, f.x + 3, f.y + 3);
+  for (const c of d.covers) grow(c.c0, c.row - 1, c.c1 + 1, c.row + 2);
+  const pad = 3;
+  return [Math.max(0, x0 - pad), Math.max(0, y0 - pad), Math.min(W, x1 + pad), Math.min(H, y1 + pad)];
+}
+function buildFocus(id) {                 // dims everything outside the chosen room
+  const m = document.createElement('canvas'); m.width = PW; m.height = PH;
+  const g = m.getContext('2d');
+  g.fillStyle = 'rgba(8,6,16,.55)'; g.fillRect(0, 0, PW, PH);
+  g.globalCompositeOperation = 'destination-out';
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (roomGrid[y * W + x] === id) g.fillRect(x * CELL - CELL, y * CELL - CELL, CELL * 3, CELL * 3);
+  }
+  return m;
+}
 
-// test hooks for screenshots: #on, #off, #mixed
-const h = location.hash.slice(1);
-if (h === 'on') lights.forEach(l => { l.on = true; l.level = 1; });
-if (h === 'mixed') { covers.forEach(c => { c.closed = true; c.level = 1; }); fans.forEach(f => { f.on = true; f.speed = 1; }); }
-if (h === 'mixed') lights.forEach(l => { l.on = ['living','dining','back_door','record_player_lamp','master_closet','kitchen','kitchen_counter','kitchen_sink','upper_cabinet','hall_accent','m_bedroom','porch','garage_front','master_fan_light'].includes(l.id); l.level = l.on ? 1 : 0; });
-renderLegend();
-map.onload = () => paint(performance.now());
+// ---- camera: CSS transform on the canvas keeps pixels crisp
+const stage = document.getElementById('stage');
+function applyCamera() {
+  if (!sel) { canvas.style.transform = 'none'; return; }
+  const [x0, y0, x1, y1] = roomBox(sel);
+  const s = Math.min(W / (x1 - x0), H / (y1 - y0), 5);
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  const tx = -x0 / W * sw * s + (sw - (x1 - x0) / W * sw * s) / 2;
+  const ty = -y0 / H * sh * s + (sh - (y1 - y0) / H * sh * s) / 2;
+  canvas.style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+}
+new ResizeObserver(applyCamera).observe(stage);
+function openRoom(id) {
+  sel = id; focusMask = id ? buildFocus(id) : null;
+  document.getElementById('crumb').style.display = id ? 'block' : 'none';
+  document.getElementById('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a room · hold to toggle its lights';
+  applyCamera(); render(); paint(performance.now());
+  try { history.replaceState(null, '', id ? '#' + id.replace(/_/g, '-') : location.pathname); } catch (e) {}
+}
+document.getElementById('back').onclick = () => openRoom(null);
+
+// ---- canvas input
+function cellOf(ev) {
+  const rect = canvas.getBoundingClientRect();
+  return [(ev.clientX - rect.left) / rect.width * W, (ev.clientY - rect.top) / rect.height * H];
+}
+function deviceAt(x, y) {
+  for (const f of fans) {
+    if (devRoom(f) !== sel) continue;
+    const dd = Math.hypot(f.x - x, f.y - y);
+    if (dd > 1.1 && dd < 3.4) return { fan: f };
+  }
+  let best = null, bd = 2.6;
+  for (const l of lights) { if (devRoom(l) !== sel) continue; for (const f of l.fx) { const dd = Math.hypot(f.x - x, f.y - y); if (dd < bd) { bd = dd; best = { light: l }; } } }
+  if (best) return best;
+  for (const c of covers) {
+    if (devRoom(c) !== sel) continue;
+    if (x >= c.c0 - 1 && x <= c.c1 + 2 && Math.abs(y - (c.row + .5)) < 2.2) return { cover: c };
+  }
+  return null;
+}
+let press = null;
+const toastEl = document.getElementById('toast');
+function toast(t) { toastEl.textContent = t; toastEl.style.opacity = 1; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.style.opacity = 0, 1400); }
+canvas.addEventListener('pointerdown', ev => {
+  const [x, y] = cellOf(ev);
+  press = { x, y, long: false, timer: null };
+  if (!sel) press.timer = setTimeout(() => {           // long-press a room on the overview: toggle its lights
+    const id = roomAt(x, y); if (!id) return;
+    const ls = inRoom(id).lights; if (!ls.length) return;
+    const any = ls.some(l => l.on); ls.forEach(l => l.on = !any);
+    press.long = true; render();
+    toast(`${ROOMS.find(r => r.id === id).name}: lights ${any ? 'off' : 'on'}`);
+    if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
+  }, 500);
+});
+canvas.addEventListener('pointerup', ev => {
+  if (!press) return;
+  clearTimeout(press.timer);
+  if (press.long) { press = null; return; }
+  const [x, y] = cellOf(ev); press = null;
+  if (!sel) { const id = roomAt(x, y); if (id) openRoom(id); return; }
+  const d = deviceAt(x, y);
+  if (d) { if (d.light) d.light.on = !d.light.on; if (d.fan) d.fan.on = !d.fan.on; if (d.cover) d.cover.closed = !d.cover.closed; render(); return; }
+  const id = roomAt(x, y);
+  openRoom(id && id !== sel ? id : null);
+});
+canvas.addEventListener('pointercancel', () => { if (press) clearTimeout(press.timer); press = null; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ---- side panel
+const ICON = {
+  bulb: '<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="2" y="0" width="4" height="1" fill="C"/><rect x="1" y="1" width="6" height="3" fill="C"/><rect x="2" y="4" width="4" height="1" fill="C"/><rect x="3" y="5" width="2" height="1" fill="#8a8296"/><rect x="2" y="6" width="4" height="1" fill="#6d6578"/><rect x="2" y="1" width="1" height="1" fill="#fff8"/></svg>',
+  strip: '<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="0" y="3" width="8" height="2" fill="#120e18"/><rect x="0" y="3" width="1" height="1" fill="C"/><rect x="2" y="4" width="1" height="1" fill="C"/><rect x="4" y="3" width="1" height="1" fill="C"/><rect x="6" y="4" width="1" height="1" fill="C"/></svg>',
+  fan: '<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="3" y="0" width="2" height="3" fill="C"/><rect x="5" y="3" width="3" height="2" fill="C"/><rect x="3" y="5" width="2" height="3" fill="C"/><rect x="0" y="3" width="3" height="2" fill="C"/><rect x="3" y="3" width="2" height="2" fill="#120e18"/></svg>',
+  blinds: '<svg class="ico" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="0" y="0" width="8" height="8" fill="#82c0e6"/><rect x="0" y="0" width="8" height="H" fill="#eee8d8"/><rect x="0" y="1" width="8" height="1" fill="#c4bcaa" opacity="O"/><rect x="0" y="3" width="8" height="1" fill="#c4bcaa" opacity="O"/><rect x="0" y="0" width="1" height="8" fill="#f6f2e8"/><rect x="7" y="0" width="1" height="8" fill="#f6f2e8"/></svg>',
+};
+const PRESETS = [[255, 190, 90], [255, 90, 120], [190, 110, 255], [90, 150, 255], [90, 230, 190], [250, 250, 240]];
+const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+const side = document.getElementById('side');
+function countOn(id) { const d = inRoom(id); return d.lights.filter(l => l.on).length + d.fans.filter(f => f.on).length; }
+function render() {
+  side.innerHTML = sel ? roomPanel(sel) : housePanel();
+  bindPanel();
+}
+function housePanel() {
+  const on = lights.filter(l => l.on).length;
+  const rows = ROOMS.map(r => {
+    const d = inRoom(r.id), n = d.lights.length + d.fans.length + d.covers.length;
+    if (!n) return '';
+    const k = countOn(r.id);
+    return `<button class="room${k ? ' lit' : ''}" data-room="${r.id}"><span>${r.name}</span><span class="st">${k ? k + ' on' : 'all off'} &rsaquo;</span></button>`;
+  }).join('');
+  return `<div class="top"><div><h1>Main floor</h1><div class="sub">${on} of ${lights.length} lights on</div></div>
+    <button id="allOff" ${on ? '' : 'disabled'}>All off</button></div>
+    <div class="list rooms">${rows}</div>
+    <div class="row2"><label>Night <input id="dark" type="range" min="0" max="0.8" step="0.05" value="${darkness}"></label>
+    <label><input id="labels" type="checkbox" ${showLabels ? 'checked' : ''}> Labels</label></div>
+    <div class="note">Preview with sample state. In Home Assistant each control reads and sets the real device.</div>`;
+}
+function roomPanel(id) {
+  const r = ROOMS.find(x => x.id === id), d = inRoom(id), k = countOn(id);
+  const rows = [];
+  for (const l of d.lights) {
+    const col = l.color ? `rgb(${l.color})` : '#ffd95a';
+    rows.push(`<div class="dev${l.on ? ' on' : ''}">${ICON[l.strip ? 'strip' : 'bulb'].replaceAll('fill="C"', `fill="${l.on ? col : '#77708a'}"`)}
+      <div class="nm">${l.name}<small>${l.on ? 'On' : 'Off'}${l.rgb ? ' · color strip' : ''}</small></div>
+      <button class="sw" aria-label="${l.name}" aria-pressed="${l.on}" data-light="${l.id}"></button>
+      ${l.rgb ? `<div class="chips">${PRESETS.map(p => `<button class="chip" style="background:${hex(p)}" aria-label="Set ${l.name} color" aria-pressed="${hex(p) === hex(l.color || [])}" data-color="${l.id}" data-v="${hex(p)}"></button>`).join('')}
+        <input type="color" aria-label="Custom color" value="${hex(l.color || [255, 220, 90])}" data-pick="${l.id}"></div>` : ''}
+    </div>`);
+  }
+  for (const f of d.fans) rows.push(`<div class="dev${f.on ? ' on' : ''}">${ICON.fan.replaceAll('fill="C"', `fill="${f.on ? '#ffd95a' : '#77708a'}"`)}
+      <div class="nm">${f.name}<small>${f.on ? 'Spinning' : 'Off'}</small></div>
+      <button class="sw" aria-label="${f.name}" aria-pressed="${f.on}" data-fan="${f.id}"></button></div>`);
+  for (const c of d.covers) rows.push(`<div class="dev">${ICON.blinds.replace('height="H"', `height="${c.closed ? 8 : 1}"`).replaceAll('opacity="O"', `opacity="${c.closed ? 1 : 0}"`)}
+      <div class="nm">${c.name}<small>${c.closed ? 'Closed' : 'Open'}</small></div>
+      <div class="seg"><button aria-pressed="${!c.closed}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.closed}" data-cover="${c.id}" data-v="close">Close</button></div></div>`);
+  return `<div class="top"><div><h2>${r.name}</h2><div class="sub">${k ? k + ' on' : 'Everything off'}</div></div>
+    <button id="roomOff" ${k ? '' : 'disabled'}>All off</button></div>
+    <div class="list">${rows.join('') || '<div class="empty">Nothing to control here yet.</div>'}</div>`;
+}
+function bindPanel() {
+  const $ = q => side.querySelectorAll(q);
+  $('[data-room]').forEach(b => b.onclick = () => openRoom(b.dataset.room));
+  $('[data-light]').forEach(b => b.onclick = () => { const l = lights.find(x => x.id === b.dataset.light); l.on = !l.on; render(); });
+  $('[data-fan]').forEach(b => b.onclick = () => { const f = fans.find(x => x.id === b.dataset.fan); f.on = !f.on; render(); });
+  $('[data-cover]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.cover); c.closed = b.dataset.v === 'close'; render(); });
+  const setColor = (id, v) => { const l = lights.find(x => x.id === id); l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; };
+  $('[data-color]').forEach(b => b.onclick = () => { setColor(b.dataset.color, b.dataset.v); render(); });
+  $('[data-pick]').forEach(i => { i.oninput = () => setColor(i.dataset.pick, i.value); i.onchange = render; });
+  const off = side.querySelector('#allOff'); if (off) off.onclick = () => { lights.forEach(l => l.on = false); render(); };
+  const roff = side.querySelector('#roomOff'); if (roff) roff.onclick = () => { const d = inRoom(sel); d.lights.forEach(l => l.on = false); d.fans.forEach(f => f.on = false); render(); };
+  const dk = side.querySelector('#dark'); if (dk) dk.oninput = e => { darkness = +e.target.value; paint(performance.now()); };
+  const lb = side.querySelector('#labels'); if (lb) lb.onchange = e => { showLabels = e.target.checked; paint(performance.now()); };
+}
+
+// ---- starting state: a lived-in evening (#off starts dark, #all-on lights everything; #<room> opens a room)
+const SAMPLE = ['living', 'dining', 'record_player_lamp', 'kitchen', 'kitchen_counter', 'upper_cabinet', 'hall_accent', 'm_bedroom', 'porch', 'garage_front', 'master_fan_light', 'back_door', 'master_closet', 'kitchen_sink'];
+const tag = location.hash.slice(1);
+if (tag === 'all-on') lights.forEach(l => { l.on = true; l.level = 1; });
+else if (tag !== 'off') {
+  lights.forEach(l => { l.on = SAMPLE.includes(l.id); l.level = l.on ? 1 : 0; });
+  covers.forEach(c => { c.closed = c.id === 'm_bedroom_blinds'; c.level = c.closed ? 1 : 0; });
+  fans.forEach(f => { f.on = f.id === 'master_fan'; f.speed = f.on ? 1 : 0; });
+}
+render();
+map.onload = () => { const id = tag.replace(/-/g, '_'); openRoom(ROOMS.some(r => r.id === id) ? id : null); };
 requestAnimationFrame(frame);
 </script>
 </body>
