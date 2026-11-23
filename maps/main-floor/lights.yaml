@@ -25,6 +25,30 @@ lights:
     y: 15.0
     radius: 22
 
+  - id: kitchen_counter
+    name: Kitchen counter
+    room: kitchen
+    entity: light.kitchen_counter
+    x: 84.6
+    y: 10.3
+    radius: 12
+
+  - id: kitchen_sink
+    name: Kitchen sink
+    room: kitchen
+    entity: light.kitchen_sink
+    x: 93.5
+    y: 6.7
+    radius: 10
+
+  - id: upper_cabinet
+    name: Upper cabinet
+    room: kitchen
+    entity: light.upper_cabinet
+    x: 104.8
+    y: 17.3
+    radius: 10
+
   - id: entry
     name: Entry
     room: hall
