@@ -738,11 +738,7 @@ function bindPanel() {
   const lb = side.querySelector('#labels'); if (lb) lb.onchange = e => { showLabels = e.target.checked; paint(performance.now()); };
 }
 
-// ---- boot: the bridge seeds state (sample data in the preview, live states in HA)
-bridge.init?.(api);
-render();
-map.onload = () => { openRoom(bridge.startRoom && ROOMS.some(r => r.id === bridge.startRoom) ? bridge.startRoom : null); };
-let raf = requestAnimationFrame(function loop(t) { frame(t); });
+let raf = 0;
 
 // ---- api the bridge uses to push state in
 const WEATHER = { rainy: 'rain', pouring: 'rain', 'lightning-rainy': 'storm', lightning: 'storm', snowy: 'snow', 'snowy-rainy': 'snow', hail: 'snow' };
@@ -773,5 +769,10 @@ const api = {
   openRoom, render,
   destroy() { stopped = true; cancelAnimationFrame(raf); },
 };
+// ---- boot: the bridge seeds state (sample data in the preview, live states in HA)
+bridge.init?.(api);
+render();
+map.onload = () => { openRoom(bridge.startRoom && ROOMS.some(r => r.id === bridge.startRoom) ? bridge.startRoom : null); };
+raf = requestAnimationFrame(frame);
 return api;
 }

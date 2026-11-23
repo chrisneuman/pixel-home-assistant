@@ -58,6 +58,10 @@ srv.listen(0, async () => {
   const c2 = await b.newContext({ ...devices['iPhone 13'], timezoneId: 'America/Chicago' }); const q = await c2.newPage(); q.on('pageerror', e => errs.push(e.message));
   await q.goto(url); await q.waitForFunction('window.ready'); await q.waitForTimeout(1200);
   await q.screenshot({ path: `${OUT}/card-phone.png`, fullPage: true });
+  // the offline preview uses the same engine with sample data
+  const pv = await c2.newPage(); pv.on('pageerror', e => errs.push('preview: ' + e.message));
+  await pv.goto(`http://localhost:${srv.address().port}/maps/main-floor/preview.html#m-bedroom`); await pv.waitForTimeout(1000);
+  ok(/M.s room/.test(await pv.locator('#house').locator('h2').innerText().catch(() => '')), 'preview opens a room from the URL');
   ok(errs.length === 0, 'no page errors ' + JSON.stringify(errs));
   console.log(fails ? `${fails} failed` : 'all passed');
   await b.close(); srv.close(); process.exit(fails ? 1 : 0);

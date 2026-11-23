@@ -154,9 +154,10 @@ lights:
     name: Castle lights
     room: m_bedroom
     entity: switch.third_reality_inc_3rsp02028bz
-    color: [255, 214, 150]   # warm fairy lights along the castle bed's towers
-    strip: {x0: 41.2, y0: 49.8, x1: 49.4, y1: 49.8}
-    radius: 7
+    color: [255, 214, 150]   # warm glow in the castle's play nook
+    x: 46.0
+    y: 66.5
+    radius: 9
 
   - id: master_fan_light
     name: Master fan light
