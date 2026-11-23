@@ -22,7 +22,7 @@
       if (tag === 'all-on') api.lights.forEach(l => { l.on = true; l.level = 1; });
       else if (tag !== 'off') {
         api.lights.forEach(l => { l.on = SAMPLE.includes(l.id); l.level = l.on ? 1 : 0; });
-        api.covers.forEach(c => { if (c.kind === 'garage') return; c.closed = c.id === 'm_bedroom_blinds'; c.level = c.closed ? 1 : 0; });
+        api.covers.forEach(c => { if (c.kind === 'garage') return; c.pos = c.id === 'm_bedroom_blinds' ? 0 : c.id === 'living_blinds' ? 60 : 100; c.closed = c.pos === 0; c.level = 1 - c.pos / 100; });
         api.fans.forEach(f => { f.on = f.id === 'master_fan'; f.speed = f.on ? 1 : 0; });
       }
     },

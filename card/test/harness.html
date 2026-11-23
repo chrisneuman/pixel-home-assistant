@@ -19,7 +19,9 @@ async function callService(domain, service, data) {
   if (service === 'turn_on') next.state = 'on';
   if (service === 'turn_off') next.state = 'off';
   if (service === 'open_cover') next.state = 'open';
-  if (service === 'close_cover') next.state = 'closed';
+  if (service === 'close_cover') { next.state = 'closed'; if ('current_position' in next.attributes) next.attributes.current_position = 0; }
+  if (service === 'open_cover' && 'current_position' in next.attributes) next.attributes.current_position = 100;
+  if (service === 'set_cover_position') { next.attributes.current_position = data.position; next.state = data.position ? 'open' : 'closed'; }
   if (data.rgb_color) next.attributes.rgb_color = data.rgb_color;
   states[id] = next;
   setTimeout(push, 150);                          // HA's state echo arrives a moment later

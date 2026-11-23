@@ -29,6 +29,9 @@ srv.listen(0, async () => {
   await sh('[data-cover="master_blinds"][data-v="close"]').click(); await p.waitForTimeout(300);
   calls = await p.evaluate('window.calls');
   ok(JSON.stringify(calls.at(-1)) === JSON.stringify(['cover', 'close_cover', { entity_id: 'cover.master_blinds_cover' }]), 'master blinds close');
+  await sh('[data-pos="master_blinds"]').fill('40'); await sh('[data-pos="master_blinds"]').dispatchEvent('change'); await p.waitForTimeout(300);
+  calls = await p.evaluate('window.calls');
+  ok(JSON.stringify(calls.at(-1)) === JSON.stringify(['cover', 'set_cover_position', { entity_id: 'cover.master_blinds_cover', position: 40 }]), 'blinds slider -> set_cover_position 40: ' + JSON.stringify(calls.at(-1)));
   await sh('[data-color="master_closet"]').first().click(); await p.waitForTimeout(300);
   calls = await p.evaluate('window.calls');
   ok(calls.at(-1)[1] === 'turn_on' && Array.isArray(calls.at(-1)[2].rgb_color), 'closet strip color -> light.turn_on rgb_color');

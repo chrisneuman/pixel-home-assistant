@@ -7,6 +7,7 @@ let stopped = false;
 function act(kind, dev, on, extra) {                    // a user action: ask HA to do it
   if (!bridge.call || !dev.entity) return;
   const [domain] = dev.entity.split('.');
+  if (kind === 'cover' && extra && extra.position !== undefined) return bridge.call('cover', 'set_cover_position', { entity_id: dev.entity, position: extra.position });
   if (kind === 'cover') return bridge.call('cover', on ? 'open_cover' : 'close_cover', { entity_id: dev.entity });
   bridge.call(domain, on ? 'turn_on' : 'turn_off', { entity_id: dev.entity, ...(on && extra && domain === 'light' ? extra : {}) });
 }
@@ -31,7 +32,7 @@ function stripPoints(l) {
   return Array.from({ length: n + 1 }, (_, k) => ({ x: x0 + (x1 - x0) * k / n, y: y0 + (y1 - y0) * k / n, radius: l.radius, phase: k * .5, strip: true }));
 }
 let showLabels = false, sel = null, focusMask = null;
-const covers = (CONFIG.covers || []).map(c => ({ ...c, closed: c.kind === 'garage', level: 0, openSince: 0 }));
+const covers = (CONFIG.covers || []).map(c => ({ ...c, closed: c.kind === 'garage', pos: 100, level: 0, openSince: 0 }));
 const garageDoors = covers.filter(c => c.kind === 'garage');
 const fans = (CONFIG.fans || []).map((f, i) => ({ ...f, on: false, speed: 0, angle: i * .4 }));
 
@@ -448,7 +449,7 @@ function frame(now) {
   const dt = Math.min(100, now - last); last = now;
   let animating = false;
   for (const cv of covers) {
-    const target = cv.kind === 'garage' ? (cv.closed ? 0 : 1) : (cv.closed ? 1 : 0);   // garage level = how open
+    const target = cv.kind === 'garage' ? (cv.closed ? 0 : 1) : 1 - cv.pos / 100;   // garage level = how open; blinds level = how far down
     const ms = cv.kind === 'garage' ? 2600 : 700;
     if (cv.level !== target) { cv.level = Math.max(0, Math.min(1, cv.level + Math.sign(target - cv.level) * dt / ms)); animating = true; }
   }
@@ -711,23 +712,30 @@ function roomPanel(id) {
       <div class="nm">${c.name}<small>${c.na ? 'Unavailable' : c.closed ? 'Closed' : `Open · ${openMins(c)} min${garageAlert(c) ? ' · close it?' : ''}`}</small></div>
       <div class="seg"><button aria-pressed="${!c.closed}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.closed}" data-cover="${c.id}" data-v="close">Close</button></div>
       ${bridge.demo && !c.closed && !garageAlert(c) ? `<div class="chips"><button class="mini" data-skip="${c.id}">Preview: skip ahead ${c.alert_after_min ?? 35} min</button></div>` : ''}</div>`);
-  for (const c of d.covers.filter(c => c.kind !== 'garage')) rows.push(`<div class="dev${c.na ? ' na' : ''}">${ICON.blinds.replace('height="H"', `height="${c.closed ? 8 : 1}"`).replaceAll('opacity="O"', `opacity="${c.closed ? 1 : 0}"`)}
-      <div class="nm">${c.name}<small>${c.na ? 'Unavailable' : c.closed ? 'Closed' : 'Open'}</small></div>
-      <div class="seg"><button aria-pressed="${!c.closed}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.closed}" data-cover="${c.id}" data-v="close">Close</button></div></div>`);
+  for (const c of d.covers.filter(c => c.kind !== 'garage')) rows.push(`<div class="dev${c.na ? ' na' : ''}">${ICON.blinds.replace('height="H"', `height="${Math.max(1, Math.round(8 * (1 - c.pos / 100)))}"`).replaceAll('opacity="O"', `opacity="${c.pos < 60 ? 1 : 0}"`)}
+      <div class="nm">${c.name}<small data-poslabel="${c.id}">${c.na ? 'Unavailable' : blindsText(c.pos)}</small></div>
+      <div class="seg"><button aria-pressed="${c.pos === 100}" data-cover="${c.id}" data-v="open">Open</button><button aria-pressed="${c.pos === 0}" data-cover="${c.id}" data-v="close">Close</button></div>
+      <label class="pos"><span>Closed</span><input type="range" min="0" max="100" step="5" value="${c.pos}" aria-label="${c.name} position, percent open" data-pos="${c.id}"><span>Open</span></label></div>`);
   return `<div class="top"><div><h2>${r.name}</h2><div class="sub">${[k ? k + ' on' : '', ...d.covers.filter(c => c.kind === 'garage' && !c.closed).map(c => c.name + ' open')].filter(Boolean).join(' · ') || 'Everything off'}</div></div>
 </div>
     <div class="list">${rows.join('') || '<div class="empty">Nothing to control here yet.</div>'}</div>`;
 }
 function setCover(c, closed) {
   if (c.closed !== closed && !closed) c.openSince = Date.now();
-  c.closed = closed;
+  c.closed = closed; c.pos = closed ? 0 : 100;
 }
+const blindsText = p => p >= 100 ? 'Open' : p <= 0 ? 'Closed' : `${p}% open`;
 function bindPanel() {
   const $ = q => side.querySelectorAll(q);
   $('[data-room]').forEach(b => b.onclick = () => openRoom(b.dataset.room));
   $('[data-light]').forEach(b => b.onclick = () => { const l = lights.find(x => x.id === b.dataset.light); l.on = !l.on; act('light', l, l.on); render(); });
   $('[data-fan]').forEach(b => b.onclick = () => { const f = fans.find(x => x.id === b.dataset.fan); f.on = !f.on; act('fan', f, f.on); render(); });
   $('[data-cover]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.cover); setCover(c, b.dataset.v === 'close'); act('cover', c, b.dataset.v !== 'close'); render(); });
+  $('[data-pos]').forEach(i => {
+    const c = covers.find(x => x.id === i.dataset.pos);
+    i.oninput = () => { c.pos = +i.value; c.closed = c.pos === 0; side.querySelector(`[data-poslabel="${c.id}"]`).textContent = blindsText(c.pos); };
+    i.onchange = () => { act('cover', c, c.pos > 0, { position: c.pos }); render(); };
+  });
   $('[data-skip]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.skip); c.openSince -= (c.alert_after_min ?? 35) * 60000; render(); });
   $('[data-weather]').forEach(b => b.onclick = () => { weather = b.dataset.weather; render(); });
   const ck = side.querySelector('#clock'); if (ck) ck.oninput = e => { clockMode = 'set'; clockHour = +e.target.value; side.querySelector('#skyst').textContent = skyText(); side.querySelector('#live').setAttribute('aria-pressed', 'false'); paint(performance.now()); };
@@ -756,7 +764,7 @@ function setStates(states, first) {
     if (!s || c.na) continue;
     const closed = s.state === 'closed' || s.state === 'closing';
     if (c.kind === 'garage') { c.closed = closed; c.openSince = closed ? 0 : Date.parse(s.last_changed); if (first) c.level = closed ? 0 : 1; }
-    else { c.closed = closed; if (first) c.level = closed ? 1 : 0; }
+    else { const p = s.attributes && s.attributes.current_position; c.pos = typeof p === 'number' ? p : closed ? 0 : 100; c.closed = c.pos === 0; if (first) c.level = 1 - c.pos / 100; }
   }
   const sun = st(SKY.sun || 'sun.sun'); liveElev = sun && sun.attributes && typeof sun.attributes.elevation === 'number' ? sun.attributes.elevation : null;
   const w = st(SKY.weather); weather = (w && WEATHER[w.state]) || 'clear';
