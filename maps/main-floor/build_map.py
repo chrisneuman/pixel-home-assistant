@@ -86,6 +86,7 @@ fill(90, 4, 96, 4, 'W')            # kitchen window over the sink
 fill(69, 4, 77, 4, 'L')            # sliding glass door off the dining room
 # porch is an open slab; the front path runs straight down from the door side
 fill(52, 80, 57, 87, 'd')
+fill(62, 0, 106, 3, 'k')           # back deck off the sliding door, runs to the right side of the house
 fill(64, 76, 101, 87, 'd')
 
 room_of = [[None] * W for _ in range(H)]
@@ -201,6 +202,11 @@ for r in range(H):
             for x in range(c * CELL, c * CELL + CELL):
                 if t == '.':
                     col = grass_px(x, y)
+                elif t == 'k':                                   # deck boards
+                    if x % 6 == 5: col = (112, 74, 48)
+                    elif (y + (x // 6) * 11) % 40 == 0: col = (112, 74, 48)
+                    elif x % 6 == 0: col = (190, 140, 96)
+                    else: col = (164, 116, 76)
                 elif t == 'd' or t == 'p':
                     col = PAL['drive_d'] if (x % 16 == 0 or y % 16 == 0 or h(x, y) % 29 == 0) else PAL['drive']
                 elif t in ' S':
@@ -310,7 +316,7 @@ for r in range(1, H):
     for c in range(W):
         if grid[r - 1][c] not in '#WBL' or grid[r][c] in '#DFcZWBL': continue
         x0, y0 = c * CELL, r * CELL
-        outside = grid[r][c] in '.dp' or room_of[r][c] == 'porch'
+        outside = grid[r][c] in '.dpk' or room_of[r][c] == 'porch'
         win = grid[r - 1][c] in 'WB'
         slider = grid[r - 1][c] == 'L'
         for y in range(y0, y0 + 6):
@@ -759,7 +765,7 @@ plant(25, 78.5); plant(58.5, 78.5); plant(52, 68)
 dog(41.5, 18)
 # yard
 mailbox(62.5, 84)
-for (c, r) in [(15, 81), (17, 82.5), (100, 4), (30, 2)]:
+for (c, r) in [(15, 81), (17, 82.5), (30, 2)]:
     mushroom(c, r)
 for (c, r) in [(10, 76), (104, 84), (8, 84)]:
     tree(c, r)
@@ -784,7 +790,7 @@ with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
         "cell_px": CELL, "cell_feet": 0.5, "width": W, "height": H,
         "legend": {".": "grass", "#": "wall", " ": "floor", "D": "door", "F": "front door",
                    "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window", "B": "window with blinds", "L": "sliding glass door",
-                   "S": "stairs", "p": "porch steps", "d": "driveway"},
+                   "S": "stairs", "p": "porch steps", "d": "driveway", "k": "deck"},
         "tiles": [''.join(row) for row in grid],
         "rooms": [{"id": rid, "name": name, "floor": mat, "rects": rects}
                   for rid, name, mat, rects in ROOMS],
