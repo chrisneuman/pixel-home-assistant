@@ -4,7 +4,7 @@
 # Paste each automation into Settings > Automations > Create > Edit in YAML.
 # Replace the placeholders:
 #   cover.garage_door                 your garage door entity (same one as maps/main-floor/lights.yaml)
-#   notify.mobile_app_your_phone      your phone's notify service (Developer tools > Actions, search "notify.mobile_app")
+#   notify.mobile_app_fold7v1      chris's Fold 7 (installed on HA 2026-11-23 as automation.garage_door_left_open)
 
 - alias: Garage door left open
   description: Alert when the garage door has been open 35 minutes, then every 15 minutes until it closes.
@@ -17,7 +17,7 @@
   actions:
     - repeat:
         sequence:
-          - action: notify.mobile_app_your_phone
+          - action: notify.mobile_app_fold7v1
             data:
               title: Garage door is open
               message: >-
@@ -36,7 +36,7 @@
           - condition: state
             entity_id: cover.garage_door
             state: closed
-    - action: notify.mobile_app_your_phone
+    - action: notify.mobile_app_fold7v1
       data:
         message: clear_notification
         data: { tag: garage-door-open }
