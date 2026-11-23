@@ -139,8 +139,8 @@ lights:
     entity: light.porch
     radius: 18
     fixtures:            # one entity, two fixtures
-      - {x: 52.5, y: 63.0}
-      - {x: 59.6, y: 63.8}
+      - {x: 52.5, y: 63.4}
+      - {x: 59.6, y: 63.4}
 
   - id: master_fan_light
     name: Master fan light

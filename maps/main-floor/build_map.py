@@ -493,39 +493,78 @@ def window_bench(c0, r0, c1, r1):
     box(c0 + .6, r0 + .5, c0 + 2.4, r0 + 2.2, (250, 220, 120)); box(c1 - 2.4, r0 + .5, c1 - .6, r0 + 2.2, (240, 150, 170))
 
 def castle_bed(c0, r0, c1, r1):
-    """Castle bed: stone walls with crenellations, round towers with pink roofs, flags."""
-    stone, stone_d, stone_l = (176, 172, 184), (130, 126, 140), (204, 200, 212)
-    box(c0, r0, c1, r1, stone)
-    for y in range(P(r0) + 3, P(r1) - 2, 6):                               # brick courses
-        d.line([P(c0) + 1, y, P(c1) - 2, y], fill=stone_d)
-        off = 0 if (y // 6) % 2 else 4
-        for x in range(P(c0) + 1 + off, P(c1) - 2, 8):
-            d.line([x, y - 5, x, y], fill=stone_d)
-    for x in range(P(c0) + 2, P(c1) - 4, 8):                               # crenellations
-        d.rectangle([x, P(r0) + 1, x + 3, P(r0) + 3], fill=stone_l, outline=stone_d)
-    for y in range(P(r0) + 2, P(r1) - 4, 8):
-        d.rectangle([P(c0) + 1, y, P(c0) + 3, y + 3], fill=stone_l, outline=stone_d)
-    # mattress inside the walls
-    mc0, mr0, mc1, mr1 = c0 + 1.6, r0 + 4.5, c1 - .6, r1 - 1.2
-    box(mc0, mr0, mc1, mr1, (240, 150, 190), hi=(255, 190, 220))
-    box(mc0 + .8, mr0 + .6, mc0 + 3.8, mr0 + 2.4, (250, 250, 246)); box(mc1 - 3.8, mr0 + .6, mc1 - .8, mr0 + 2.4, (250, 250, 246))
-    d.rectangle([P(mc0) + 2, P(mr0 + 3.2), P(mc1) - 3, P(mr0 + 4.2)], fill=(255, 236, 246))
-    for y in range(P(mr0 + 6), P(mr1) - 4, 10):                            # heart quilt
-        for x in range(P(mc0) + 6, P(mc1) - 6, 12):
-            d.point([(x, y), (x + 2, y), (x - 1, y + 1), (x + 1, y + 1), (x + 3, y + 1), (x, y + 2), (x + 2, y + 2), (x + 1, y + 3)], fill=(210, 80, 130))
-    # gate on the room side
-    gx, gy = P(c0), P((r0 + r1) / 2)
-    d.rectangle([gx - 1, gy - 10, gx + 5, gy + 10], fill=(110, 76, 50), outline=PAL['outline'])
-    for yy in range(gy - 8, gy + 9, 3): d.line([gx, yy, gx + 4, yy], fill=(70, 48, 32))
-    # towers + roofs + flags
-    for (tx, ty) in [(c0 + 1, r0 + 1.2), (c1 - 1.5, r0 + 1.2), (c0 + 1, r1 - 1.2)]:
-        cx, cy = P(tx), P(ty)
-        d.ellipse([cx - 12, cy - 12, cx + 12, cy + 12], fill=stone, outline=PAL['outline'])
-        d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(214, 96, 150), outline=(150, 50, 100))
-        d.ellipse([cx - 5, cy - 5, cx + 5, cy + 5], fill=(236, 130, 180))
-        d.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=(255, 200, 230))
-        d.line([cx, cy, cx, cy - 16], fill=(60, 50, 50))
-        d.polygon([(cx + 1, cy - 16), (cx + 9, cy - 13), (cx + 1, cy - 10)], fill=(250, 220, 90), outline=(170, 120, 40))
+    """M's sage-green castle bed: plank-sided captain's bed with pull-tab drawers along the
+    right wall, a tall crenellated tower at the head (bottom) with shelves of stuffies,
+    and an arched nook beside it toward the window with a little desk chair, pink streamers."""
+    sage, sage_d, sage_l, sage_dd = (176, 192, 148), (140, 158, 116), (204, 216, 180), (104, 120, 86)
+    # --- bed (head at the bottom, by the tower)
+    bx0, by0, bx1, by1 = c0 + 3.2, r0 + .5, c1, r1 - 6.2
+    box(bx0, by0, bx1, by1, sage, hi=sage_l)
+    for x in range(P(bx0) + 3, P(bx0) + 10, 3):                            # plank side facing the room
+        d.line([x, P(by0) + 2, x, P(by1) - 3], fill=sage_d)
+    for y in (by0 + 3, by0 + 7.5):                                         # leather drawer pulls
+        d.rectangle([P(bx0) + 2, P(y), P(bx0) + 4, P(y) + 4], fill=(196, 140, 96), outline=(120, 80, 50))
+    mx0 = bx0 + 1.4
+    d.rectangle([P(mx0), P(by0) + 3, P(bx1) - 4, P(by1) - 3], fill=(244, 226, 230), outline=(190, 170, 176))   # sheet
+    for y in range(P(by0) + 6, P(by1) - 6, 5):
+        for x in range(P(mx0) + 3, P(bx1) - 6, 5):
+            d.point((x + (y // 5) % 2 * 2, y), fill=(226, 196, 206))
+    # rumpled white duvet with a blue blanket on top
+    d.polygon([(P(mx0) - 2, P(by0 + 2)), (P(bx1) - 6, P(by0 + 1.5)), (P(bx1) - 5, P(by0 + 7)), (P(mx0) + 10, P(by0 + 8.5)), (P(mx0) - 3, P(by0 + 6))],
+              fill=(240, 240, 248), outline=(170, 176, 200))
+    d.line([P(mx0) + 4, P(by0 + 4), P(bx1) - 10, P(by0 + 3.5)], fill=(200, 206, 226))
+    d.polygon([(P(mx0) + 14, P(by0 + 6.5)), (P(bx1) - 8, P(by0 + 6)), (P(bx1) - 9, P(by0 + 9)), (P(mx0) + 18, P(by0 + 9.5))],
+              fill=(170, 200, 236), outline=(110, 140, 190))
+    # ruffled pillows against the tower
+    py = P(by1) - 9
+    d.rounded_rectangle([P(mx0) + 1, py, P(bx1) - 5, py + 6], radius=3, fill=(226, 206, 186), outline=(170, 146, 120))
+    for x in range(P(mx0) + 2, P(bx1) - 6, 3): d.point((x, py + 6), fill=(196, 172, 150))
+    d.rounded_rectangle([P(mx0) + 4, py - 5, P(mx0) + 16, py + 1], radius=3, fill=(250, 250, 246), outline=(180, 180, 180))   # bunny pillow
+    d.ellipse([P(mx0) + 6, py - 9, P(mx0) + 9, py - 4], fill=(250, 250, 246), outline=(180, 180, 180))
+    d.ellipse([P(mx0) + 11, py - 9, P(mx0) + 14, py - 4], fill=(250, 250, 246), outline=(180, 180, 180))
+    # --- tower across the bottom-right corner, with the arched nook toward the window
+    tx0, ty0, tx1, ty1 = c0, r1 - 6.2, c1, r1
+    box(tx0, ty0, tx1, ty1, sage, hi=sage_l)
+    # crenellated top edge
+    for x in range(P(tx0) + 2, P(tx1) - 4, 10):
+        d.rectangle([x, P(ty0) - 3, x + 5, P(ty0)], fill=sage_l, outline=sage_dd)
+    for x in range(P(tx0) + 2, P(tx1) - 2, 3):                              # vertical planks
+        d.line([x, P(ty0) + 3, x, P(ty1) - 3], fill=sage_d)
+    # shelf cubby on the tower above the bed, full of stuffies
+    sx0, sx1 = P(bx0) + 6, P(tx1) - 5
+    d.rectangle([sx0, P(ty0) + 5, sx1, P(ty0) + 20], fill=sage_dd, outline=PAL['outline'])
+    stuff = [(186, 150, 210), (150, 100, 60), (90, 160, 90), (240, 200, 210), (120, 90, 70)]
+    for k, x in enumerate(range(sx0 + 3, sx1 - 4, 6)):
+        col = stuff[k % len(stuff)]
+        d.ellipse([x, P(ty0) + 8, x + 6, P(ty0) + 16], fill=col, outline=PAL['outline'])
+        d.point([(x + 2, P(ty0) + 11), (x + 4, P(ty0) + 11)], fill=(20, 20, 20))
+    # arched nook (desk + blue chair inside) on the window side
+    ax0, ax1 = P(tx0) + 3, P(bx0) + 3
+    ay0, ay1 = P(ty0) + 6, P(ty1) - 2
+    d.rectangle([ax0, ay0 + 6, ax1, ay1], fill=(66, 74, 60))
+    d.pieslice([ax0, ay0, ax1, ay0 + 12], 180, 360, fill=(66, 74, 60))
+    d.rectangle([ax0 + 2, ay1 - 10, ax1 - 2, ay1 - 6], fill=(220, 210, 190))                         # desk
+    d.ellipse([ax0 + 5, ay1 - 8, ax1 - 5, ay1 - 1], fill=(150, 200, 226), outline=(80, 120, 150))    # blue chair
+    d.arc([ax0, ay0, ax1, ay0 + 12], 180, 360, fill=sage_l)
+    # pink streamers hanging off the tower top
+    for x, ln in ((P(bx0) + 1, 14), (P(bx0) + 4, 20), (P(bx0) + 8, 11)):
+        d.line([x, P(ty0) - 2, x, P(ty0) - 2 + ln], fill=(236, 60, 96), width=2)
+    # little crest badge
+    d.polygon([(P(tx1) - 9, P(ty0) + 24), (P(tx1) - 4, P(ty0) + 24), (P(tx1) - 4, P(ty0) + 29), (P(tx1) - 6, P(ty0) + 31), (P(tx1) - 9, P(ty0) + 29)],
+              fill=(90, 110, 160), outline=PAL['outline'])
+
+def shag_rug(c0, r0, c1, r1):
+    """Fluffy white shag rug with pastel blotches."""
+    dd = dbase
+    dd.rounded_rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], radius=4, fill=(246, 244, 240))
+    blots = [(240, 190, 200), (130, 150, 110), (226, 186, 90), (160, 190, 210), (232, 200, 220)]
+    rr = random.Random(7)
+    for k in range(10):
+        x = rr.uniform(P(c0) + 4, P(c1) - 10); y = rr.uniform(P(r0) + 4, P(r1) - 10)
+        dd.ellipse([x, y, x + rr.uniform(7, 14), y + rr.uniform(6, 12)], fill=blots[k % len(blots)])
+    for k in range(260):                                                   # shag texture
+        x = rr.randrange(P(c0) + 1, P(c1) - 2); y = rr.randrange(P(r0) + 1, P(r1) - 2)
+        px[x, y] = tuple(max(0, v - 30) for v in px[x, y])
 
 def bronco(c0, r0, c1, r1):
     """Marsh-grey (warm taupe-brown) Bronco, nose toward the garage door, spare tire on the back.
@@ -586,6 +625,15 @@ def bike(c, r, frame):
     d.line([x - 10, y - 18, x + 10, y - 18], fill=(30, 30, 34), width=3)
     d.rectangle([x - 3, y + 2, x + 3, y + 9], fill=(60, 50, 40))
 
+def bike_h(c, r, frame):
+    """Bike seen from above lying horizontal, front wheel (right) toward the wall."""
+    x, y = P(c), P(r)
+    d.ellipse([x - 28, y - 4, x - 12, y + 4], outline=(30, 30, 34), width=3)    # rear wheel
+    d.ellipse([x + 12, y - 4, x + 28, y + 4], outline=(30, 30, 34), width=3)    # front wheel
+    d.line([x - 18, y, x + 18, y], fill=frame, width=4)
+    d.line([x + 14, y - 8, x + 14, y + 8], fill=(30, 30, 34), width=3)          # handlebars
+    d.rectangle([x - 10, y - 2, x - 4, y + 2], fill=(60, 50, 40))              # saddle
+
 def washer_dryer_stack(c0, r0, c1, r1):
     """Stacked pair in the corner, drawn front-on (Pokemon 3/4 style)."""
     box(c0, r0, c1, r1, (238, 238, 242))
@@ -629,7 +677,11 @@ box(51.3, 11, 53, 27, (190, 120, 30))
 box(47.5, 11, 53, 12.4, (190, 120, 30)); box(47.5, 25.6, 53, 27, (190, 120, 30))
 for y in (12.4, 16.8, 21.2):                                              # seat cushions
     d.line([P(47.5) + 1, P(y + 4.4), P(51.3) - 1, P(y + 4.4)], fill=(176, 108, 28))
-box(41, 26, 45, 29, (150, 100, 60), hi=(180, 130, 90))                  # side table
+# green armchair facing the TV
+box(41, 25.4, 45.6, 30, (92, 140, 88), hi=(130, 176, 118))
+box(44, 25.4, 45.6, 30, (70, 112, 68))                                    # back
+box(41, 25.4, 45.6, 26.6, (70, 112, 68)); box(41, 28.8, 45.6, 30, (70, 112, 68))   # arms
+d.line([P(41.4), P(27.7), P(43.8), P(27.7)], fill=(76, 120, 72))
 plant(35.5, 6.5); plant(58, 33.5)
 # record player credenza with a lamp, under the window wall
 box(52.5, 5, 60, 8.6, (126, 84, 52), hi=(160, 112, 72))
@@ -681,13 +733,14 @@ window_bench(13, 66.4, 20, 69)
 # M bedroom: castle bed in the bottom-right corner along the right wall
 castle_bed(40.5, 49, 50, 69)
 box(34, 42, 40, 44.2, (150, 100, 60), hi=(180, 130, 90))                  # dresser
-rug(34.5, 55, 39.8, 66, (240, 220, 160), (200, 160, 110))
+shag_rug(34.5, 54, 40.2, 65)
 # hall runner + entry mat
 rug(24, 42, 28, 50, (90, 110, 150), (60, 76, 110))
 box(53, 52.3, 57, 53.8, (120, 84, 60))
 # garage
 bronco(76.25, 42, 89.25, 72.5)
-bike(99, 65, (60, 150, 200)); bike(102.5, 67, (230, 120, 60))
+for k, col in enumerate([(60, 150, 200), (230, 120, 60), (120, 190, 90), (220, 80, 140), (240, 210, 70)]):
+    bike_h(101, 59.5 + k * 2.6, col)                                      # 5 bikes, front wheels to the wall
 box(100, 40, 104.6, 56, (120, 120, 126), hi=(150, 150, 156))             # storage shelf
 for y in (41, 45, 49, 53):
     box(100.6, y, 102.4, y + 2.4, (200, 160, 80)); box(102.6, y + .6, 104, y + 2.6, (90, 140, 200))
