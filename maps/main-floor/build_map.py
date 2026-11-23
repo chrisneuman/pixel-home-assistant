@@ -42,7 +42,7 @@ ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
     ("g_closet",      "G room closet", "darkwood",    [(5, 50, 21, 51)]),
     ("m_bedroom",     "M bedroom",     "carpet_blue", [(34, 42, 44, 68), (45, 47, 49, 68), (30, 53, 33, 68)]),
     ("m_closet",      "M bedroom closet", "darkwood", [(46, 42, 49, 45)]),
-    ("porch",         "Porch",         "stone",       [(51, 55, 59, 69), (24, 70, 59, 79)]),
+    ("porch",         "Porch",         "slab",        [(51, 55, 59, 69), (24, 70, 59, 79)]),
 ]
 for _, _, _, rects in ROOMS:
     for r in rects:
@@ -64,7 +64,7 @@ fill(61, 28, 82, 34, 'S')
 for r in range(23, 28):            # little nook beside the stairs
     fill(80, r, 81, r, ' ')
 # doors
-fill(14, 31, 17, 31, 'D')          # master -> master bath
+fill(13, 31, 16, 31, 'D')          # master -> master bath
 fill(28, 37, 32, 37, 'D')          # master -> hall
 fill(27, 38, 27, 39, 'D')          # front closet
 fill(22, 44, 22, 47, 'D')          # main bath
@@ -79,10 +79,8 @@ for r in list(range(7, 15)) + list(range(19, 29)):
     grid[r][9] = 'c'               # master closet sliders
 fill(6, 52, 20, 52, 'c')           # G room closet sliders
 fill(14, 69, 19, 69, 'W')          # G room window over the bench
-# porch railing + steps, driveway, front path
-fill(23, 69, 23, 80, 'R'); fill(23, 80, 60, 80, 'R'); fill(60, 76, 60, 80, 'R')
-fill(38, 80, 43, 80, 'p')
-fill(38, 81, 43, 87, 'd')
+# porch is an open slab; the front path runs straight down from the door side
+fill(52, 80, 57, 87, 'd')
 fill(64, 76, 101, 87, 'd')
 
 room_of = [[None] * W for _ in range(H)]
@@ -141,6 +139,10 @@ def floor_px(mat, x, y):
         v = h(x, y) % 23
         if x % 64 == 0 or y % 64 == 0: return PAL['concrete_d']
         return PAL['concrete_d'] if v == 0 else PAL['concrete_l'] if v == 1 else PAL['concrete']
+    if mat == 'slab':
+        if x % 48 == 0 or y % 48 == 0: return PAL['stone_d']
+        v = h(x, y, 5) % 31
+        return PAL['stone_d'] if v == 0 else (204, 198, 186) if v == 1 else (190, 184, 172)
     if mat == 'stone':
         row = y // 8; off = 6 if row % 2 else 0
         if y % 8 == 0 or (x + off) % 12 == 0: return PAL['stone_d']
@@ -296,10 +298,56 @@ def toilet(c, r):
     box(c, r, c + 2, r + 1, (240, 240, 244))
     d.ellipse([P(c) + 1, P(r + 1), P(c + 2) - 2, P(r + 3)], fill=(250, 250, 252), outline=PAL['outline'])
 
-def vanity(c0, r0, c1, r1):
+def vanity(c0, r0, c1, r1, basin='top'):
     box(c0, r0, c1, r1, (150, 108, 72), hi=(180, 136, 96))
     cx = (c0 + c1) / 2
     d.ellipse([P(cx) - 6, P(r0) + 2, P(cx) + 6, P(r1) - 3], fill=(230, 240, 246), outline=(110, 120, 130))
+    fy = P(r0) + 1 if basin == 'top' else P(r1) - 3                      # faucet on the wall side
+    d.rectangle([P(cx) - 1, fy, P(cx) + 1, fy + 1], fill=(170, 176, 186))
+
+def toilet_up(c, r):
+    """Toilet flipped 180: tank against the bottom wall, bowl facing up."""
+    box(c, r + 2, c + 2, r + 3, (240, 240, 244))
+    d.ellipse([P(c) + 1, P(r), P(c + 2) - 2, P(r + 2)], fill=(250, 250, 252), outline=PAL['outline'])
+
+def shower(c0, r0, c1, r1):
+    box(c0, r0, c1, r1, (214, 232, 240))
+    for x in range(P(c0) + 4, P(c1) - 2, 5):
+        d.line([x, P(r0) + 2, x, P(r1) - 3], fill=(190, 214, 226))
+    for y in range(P(r0) + 4, P(r1) - 2, 5):
+        d.line([P(c0) + 2, y, P(c1) - 3, y], fill=(190, 214, 226))
+    d.line([P(c0), P(r0) + 1, P(c0), P(r1) - 2], fill=(150, 200, 230), width=2)   # glass
+    cx, cy = P((c0 + c1) / 2), P((r0 + r1) / 2)
+    d.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=(120, 130, 140))      # drain
+    d.ellipse([P(c1) - 8, P(r0) + 3, P(c1) - 3, P(r0) + 8], fill=(180, 186, 196), outline=PAL['outline'])  # head
+
+def bed_side(c0, r0, c1, r1, blanket, blanket_d, head='right'):
+    """Bed turned sideways with its headboard against a left or right wall."""
+    box(c0, r0, c1, r1, (120, 80, 50))
+    box(c0 + .3, r0 + .3, c1 - .3, r1 - .3, blanket, hi=tuple(min(255, v + 30) for v in blanket))
+    n = max(1, int((r1 - r0) // 4))
+    hx0 = c1 - 2.6 if head == 'right' else c0 + .6
+    for i in range(n):
+        pr = r0 + .8 + i * ((r1 - r0 - 1.6) / n)
+        box(hx0, pr, hx0 + 2, pr + (r1 - r0 - 1.6) / n - .3, (246, 246, 240))
+    sx = P(c1 - 3.2) if head == 'right' else P(c0 + 3.2)
+    sw = -P(1) if head == 'right' else P(1)
+    d.rectangle([min(sx, sx + sw), P(r0) + 2, max(sx, sx + sw), P(r1) - 3], fill=(250, 250, 246))
+    d.line([sx, P(r0) + 2, sx, P(r1) - 3], fill=blanket_d)
+
+def dog(c, r):
+    """Dog curled up on a round bed."""
+    x, y = P(c), P(r)
+    d.ellipse([x - 13, y - 10, x + 13, y + 10], fill=(120, 80, 60), outline=PAL['outline'])
+    d.ellipse([x - 10, y - 7, x + 10, y + 7], fill=(170, 130, 100))
+    fur, fur_d = (210, 160, 96), (170, 120, 64)
+    d.ellipse([x - 9, y - 6, x + 6, y + 6], fill=fur, outline=PAL['outline'])          # body
+    d.ellipse([x + 1, y - 7, x + 10, y + 2], fill=fur, outline=PAL['outline'])         # head
+    d.ellipse([x + 1, y - 7, x + 4, y - 1], fill=fur_d)                               # ears
+    d.ellipse([x + 7, y - 7, x + 10, y - 1], fill=fur_d)
+    d.point([(x + 4, y - 3), (x + 7, y - 3)], fill=(30, 24, 20))
+    d.rectangle([x + 5, y, x + 6, y + 1], fill=(40, 30, 26))                           # nose
+    d.arc([x - 12, y - 2, x - 2, y + 8], 90, 240, fill=fur_d, width=2)                # tail
 
 def tub(c0, r0, c1, r1):
     box(c0, r0, c1, r1, (244, 244, 248))
@@ -485,17 +533,19 @@ for (x, y) in [(103.5, 13.2), (105, 13.2), (103.5, 15.2), (105, 15.2)]:
 box(82, 5.5, 87, 14, (210, 180, 130), hi=(236, 210, 160))              # island
 for y in (6.5, 9.5, 12.5):
     d.ellipse([P(80) - 1, P(y) - 5, P(81.4), P(y) + 6], fill=(60, 40, 30), outline=PAL['outline'])
-# master
-bed(14, 5, 25, 16, (110, 130, 170), (80, 100, 140))
-box(11, 5, 13.5, 7.5, (150, 100, 60), hi=(180, 130, 90)); box(25.5, 5, 28, 7.5, (150, 100, 60), hi=(180, 130, 90))
-box(24, 26, 32, 30, (150, 100, 60), hi=(180, 130, 90))                  # dresser
+# master: bed centered on the right wall, headboard against it
+bed_side(21, 12, 33, 24, (110, 130, 170), (80, 100, 140), head='right')
+box(30.5, 9.5, 33, 11.8, (150, 100, 60), hi=(180, 130, 90)); box(30.5, 24.2, 33, 26.5, (150, 100, 60), hi=(180, 130, 90))
+box(12, 5, 20, 7.5, (150, 100, 60), hi=(180, 130, 90))                  # dresser
 fan(19.7, 16.8)
 # bathrooms
-tub(5, 32.5, 10.5, 39.8); vanity(13, 32, 19, 34); toilet(19, 36.5)
-tub(5, 41.2, 10.5, 48.8); vanity(13, 41, 19, 43); toilet(19, 46)
+# master bath: shower on the right, toilet beside it facing up, sink bottom-left
+shower(17, 32, 22, 40); toilet_up(14.4, 37); vanity(5, 38, 11, 40, basin='bottom')
+# main bath: tub/shower left, toilet on the top wall, sink against the right wall
+tub(5, 41.2, 10.5, 48.8); toilet(12.4, 41); vanity(15.5, 41, 22, 43)
 # G room: bed, built-ins flanking a window bench on the bottom wall
-bed(5.2, 53.3, 13, 62, (110, 170, 120), (80, 140, 96))
-rug(16, 55, 26, 61, (250, 236, 190), (120, 170, 150))
+bed_side(5, 54.5, 15, 63.5, (110, 170, 120), (80, 140, 96), head='left')
+rug(18, 55, 27, 62, (250, 236, 190), (120, 170, 150))
 builtins(5, 66, 13, 69)
 builtins(20, 66, 29, 69)
 window_bench(13, 66.4, 20, 69)
@@ -525,7 +575,7 @@ washer_dryer_stack(101.4, 27, 106, 35)
 box(53, 55.2, 57, 56.6, (150, 110, 70))                                 # door mat
 box(26, 71, 32, 73, (150, 100, 60), hi=(180, 130, 90))                   # porch bench
 plant(25, 78.5); plant(58.5, 78.5); plant(52, 68)
-cat(42, 18)
+dog(41.5, 18)
 # yard
 mailbox(62.5, 84)
 for (c, r) in [(15, 81), (17, 82.5), (100, 4), (30, 2)]:
@@ -536,7 +586,7 @@ for c in range(6, 22, 4):
     bush(c, 71.5)
 for c in range(26, 37, 4):
     bush(c, 82)
-for c in range(46, 58, 4):
+for c in (45, 49):
     bush(c, 82)
 
 img.save(os.path.join(HERE, 'main-floor.png'))
