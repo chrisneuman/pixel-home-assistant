@@ -30,7 +30,7 @@ ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
     ("master_closet", "Master closet", "darkwood",    [(5, 5, 8, 30)]),
     ("master_bath",   "Master bath",   "tile_blue",   [(5, 32, 21, 39)]),
     ("front_closet",  "Front closet",  "darkwood",    [(23, 32, 26, 39)]),
-    ("main_bath",     "Main bath",     "tile_blue",   [(5, 41, 21, 48)]),
+    ("main_bath",     "Main bath",     "tile_white",   [(5, 41, 21, 48)]),
     ("living",        "Living",        "wood",        [(34, 5, 59, 37)]),
     ("dining",        "Dining room",   "wood",        [(60, 5, 80, 21), (60, 22, 78, 26)]),
     ("kitchen",       "Kitchen",       "tile_check",  [(81, 5, 105, 21)]),
@@ -133,6 +133,8 @@ def floor_px(mat, x, y):
         return dk if (h(x, y) % 7 == 0 or (x + y) % 4 == 0 and h(x, y, 1) % 3 == 0) else base
     if mat == 'tile_check':
         return PAL['tile_a'] if ((x // 8) + (y // 8)) % 2 == 0 else PAL['tile_b']
+    if mat == 'tile_white':
+        return (214, 214, 220) if x % 8 == 0 or y % 8 == 0 else (246, 246, 244)
     if mat == 'tile_blue':
         return PAL['tile_blue_d'] if x % 6 == 0 or y % 6 == 0 else PAL['tile_blue']
     if mat == 'concrete':
@@ -524,14 +526,16 @@ for ang in range(0, 360, 90):
     x = 68 + 4.6 * math.cos(math.radians(ang)); y = 14 + 4.6 * math.sin(math.radians(ang))
     box(x - .9, y - .9, x + .9, y + .9, (110, 76, 50))
 # kitchen
-box(88, 5, 106, 8, (96, 96, 104), hi=(140, 140, 150))                  # back counter
+# one L-shaped counter: along the top wall and down as the peninsula
+box(82, 5, 106, 8, (96, 96, 104), hi=(140, 140, 150))
+box(82, 5, 87, 14, (96, 96, 104), hi=(140, 140, 150))
+d.rectangle([P(82) + 1, P(5) + 2, P(87) - 2, P(8)], fill=(96, 96, 104))   # hide the seam
 box(90.5, 5.5, 95, 7.5, (190, 200, 210)); d.line([P(92.75), P(5.5), P(92.75), P(7.5)], fill=(120, 130, 140))
 box(101, 5, 106, 9.5, (226, 226, 230), hi=(250, 250, 250))             # fridge
 box(102, 9.5, 106, 22, (96, 96, 104), hi=(140, 140, 150))            # counter along the right wall
 box(102.4, 12, 106, 16.5, (60, 60, 66))                                # stove
 for (x, y) in [(103.5, 13.2), (105, 13.2), (103.5, 15.2), (105, 15.2)]:
     d.ellipse([P(x) - 4, P(y) - 4, P(x) + 4, P(y) + 4], outline=(200, 80, 60))
-box(82, 5.5, 87, 14, (210, 180, 130), hi=(236, 210, 160))              # island
 for y in (6.5, 9.5, 12.5):
     d.ellipse([P(80) - 1, P(y) - 5, P(81.4), P(y) + 6], fill=(60, 40, 30), outline=PAL['outline'])
 # master: bed centered on the right wall, headboard against it

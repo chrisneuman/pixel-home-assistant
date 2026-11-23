@@ -169,7 +169,7 @@
   {
    "id": "main_bath",
    "name": "Main bath",
-   "floor": "tile_blue",
+   "floor": "tile_white",
    "rects": [
     [
      5,
