@@ -48,6 +48,7 @@ lights:
     x: 68.0
     y: 14.0
     radius: 16
+    style: globes        # brass chandelier with white globes
 
   - id: kitchen
     name: Kitchen
@@ -64,6 +65,7 @@ lights:
     x: 84.6
     y: 10.3
     radius: 12
+    style: pendants      # two glass pendants over the peninsula
 
   - id: kitchen_sink
     name: Kitchen sink

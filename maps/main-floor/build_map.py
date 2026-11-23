@@ -104,7 +104,7 @@ PAL = dict(
     wall=(92, 70, 98), wall_top=(150, 122, 156), wall_d=(40, 26, 46),
     face=(236, 214, 172), face_d=(206, 180, 140), face_l=(250, 236, 204), base=(124, 82, 52),
     brick=(184, 100, 72), brick_d=(132, 64, 48), brick_l=(214, 140, 104),
-    wood=(206, 138, 76), wood_d=(150, 92, 48), wood_l=(232, 172, 108),
+    wood=(152, 100, 62), wood_d=(98, 62, 38), wood_l=(182, 128, 84),
     dwood=(132, 90, 58), dwood_d=(104, 70, 44),
     carpet_tan=(214, 190, 150), carpet_tan_d=(198, 172, 132),
     carpet_pink=(232, 168, 176), carpet_pink_d=(214, 148, 160),
@@ -132,7 +132,8 @@ def floor_px(mat, x, y):
         off = (row * 13) % 24
         if (x + off) % 24 == 0: return PAL['wood_d']
         if y % 6 == 0 or (x + off) % 24 == 1: return PAL['wood_l']
-        if (x + off) % 24 == 23: return (186, 120, 64)
+        if (x + off) % 24 == 23: return (132, 86, 52)
+        if h(x // 4, row, 2) % 9 == 0: return (140, 92, 56)              # grain
         return PAL['wood']
     if mat == 'darkwood':
         row = y // 5
@@ -700,26 +701,50 @@ d.line([tx + 9, ty - 8, tx + 9, ty + 2, tx + 3, ty + 5], fill=(200, 200, 206), w
 lx, ly = P(58.6), P(6.6)
 d.ellipse([lx - 8, ly - 8, lx + 8, ly + 8], fill=(244, 228, 186), outline=(150, 120, 80))     # lamp shade
 d.ellipse([lx - 4, ly - 4, lx + 4, ly + 4], fill=(252, 240, 210))
-# dining
-d.ellipse([P(64.5), P(10.5), P(71.5), P(17.5)], fill=(150, 98, 58), outline=PAL['outline'])
-d.ellipse([P(65.2), P(11.2), P(70.8), P(16.8)], fill=(176, 120, 74))
-for ang in range(0, 360, 90):
-    import math
-    x = 68 + 4.6 * math.cos(math.radians(ang)); y = 14 + 4.6 * math.sin(math.radians(ang))
-    box(x - .9, y - .9, x + .9, y + .9, (110, 76, 50))
-# kitchen
-# one L-shaped counter: along the top wall and down as the peninsula
-box(82, 5, 106, 8, (96, 96, 104), hi=(140, 140, 150))
-box(82, 5, 87, 14, (96, 96, 104), hi=(140, 140, 150))
-d.rectangle([P(82) + 1, P(5) + 2, P(87) - 2, P(8)], fill=(96, 96, 104))   # hide the seam
-box(90.5, 5.5, 95, 7.5, (190, 200, 210)); d.line([P(92.75), P(5.5), P(92.75), P(7.5)], fill=(120, 130, 140))
-box(101, 5, 106, 9.5, (226, 226, 230), hi=(250, 250, 250))             # fridge
-box(102, 9.5, 106, 22, (96, 96, 104), hi=(140, 140, 150))            # counter along the right wall
-box(102.4, 12, 106, 16.5, (60, 60, 66))                                # stove
-for (x, y) in [(103.5, 13.2), (105, 13.2), (103.5, 15.2), (105, 15.2)]:
-    d.ellipse([P(x) - 4, P(y) - 4, P(x) + 4, P(y) + 4], outline=(200, 80, 60))
-for y in (6.5, 9.5, 12.5):
-    d.ellipse([P(80) - 1, P(y) - 5, P(81.4), P(y) + 6], fill=(60, 40, 30), outline=PAL['outline'])
+# dining (from chris's photo): round walnut table on a fluted pedestal, 4 cane-back chairs
+import math
+def cane_chair(cx, cy, ang):
+    x, y = P(cx), P(cy)
+    d.rectangle([x - 6, y - 6, x + 6, y + 6], fill=(150, 98, 58), outline=PAL['outline'])     # wood frame
+    d.rectangle([x - 4, y - 4, x + 4, y + 4], fill=(44, 48, 44))                              # dark seat
+    bx, by = int(round(math.cos(ang) * 7)), int(round(math.sin(ang) * 7))                      # cane back, away from table
+    if bx: d.rectangle([x + bx - 2, y - 6, x + bx + 2, y + 6], fill=(214, 184, 130), outline=(120, 84, 50))
+    else:  d.rectangle([x - 6, y + by - 2, x + 6, y + by + 2], fill=(214, 184, 130), outline=(120, 84, 50))
+    for k in range(-5, 6, 2):
+        if bx: d.point((x + bx, y + k), fill=(170, 136, 86))
+        else:  d.point((x + k, y + by), fill=(170, 136, 86))
+for ang in (0, 90, 180, 270):
+    a = math.radians(ang)
+    cane_chair(68 + 4.4 * math.cos(a), 14 + 4.4 * math.sin(a), a)
+d.ellipse([P(64.2), P(10.2), P(71.8), P(17.8)], fill=(92, 58, 36), outline=PAL['outline'])
+d.ellipse([P(64.6), P(10.6), P(71.4), P(17.4)], fill=(118, 76, 46))
+d.arc([P(64.9), P(10.9), P(71.1), P(17.1)], 200, 290, fill=(150, 104, 66), width=2)              # sheen
+d.line([P(68), P(10.8), P(68), P(17.2)], fill=(96, 60, 38))                                          # leaf seam
+# kitchen (from photo): white quartz on grey cabinets, fluted oak peninsula, cane stools
+QUARTZ, QUARTZ_D, CAB, OAK = (238, 236, 230), (206, 204, 198), (176, 178, 170), (204, 160, 108)
+box(82, 5, 106, 8, QUARTZ, hi=(250, 250, 248))
+d.rectangle([P(87) + 1, P(8) - 3, P(106) - 2, P(8) - 2], fill=CAB)                                  # cabinet fronts
+box(82, 5, 87, 14, QUARTZ, hi=(250, 250, 248))
+d.rectangle([P(82) + 1, P(5) + 2, P(87) - 2, P(8)], fill=QUARTZ)                                    # hide the seam
+d.rectangle([P(82) + 1, P(14) - 4, P(87) - 2, P(14) - 2], fill=OAK)                                 # fluted oak front
+for x in range(P(82) + 2, P(87) - 2, 2): d.point((x, P(14) - 3), fill=(170, 126, 80))
+d.rectangle([P(82) + 1, P(5) + 2, P(82) + 2, P(14) - 2], fill=OAK)                                  # oak side toward the stools
+box(90.5, 5.4, 95, 7.6, (196, 204, 212)); d.line([P(92.75), P(5.4), P(92.75), P(7.6)], fill=(130, 140, 150))
+d.rectangle([P(92.75) - 1, P(5) + 1, P(92.75) + 1, P(5) + 4], fill=(170, 176, 186))                # faucet
+plant(88.6, 6.3); plant(96.8, 6.2)
+box(97.8, 5.4, 100.6, 7.4, (40, 40, 44))                                                            # espresso machine
+box(101, 5, 106, 9.6, (58, 60, 66), hi=(110, 112, 120))                                             # black stainless fridge
+d.line([P(103.5), P(5) + 3, P(103.5), P(9.6) - 4], fill=(30, 30, 34))
+box(102, 9.6, 106, 22, QUARTZ, hi=(250, 250, 248))                                                  # counter along the right wall
+box(102.3, 12, 106, 16.6, (184, 186, 192), hi=(214, 216, 222))                                      # stainless range
+d.rectangle([P(102.3) + 3, P(12) + 3, P(106) - 3, P(16.6) - 4], fill=(28, 28, 32))
+for (x, y) in [(103.5, 13.3), (105, 13.3), (103.5, 15.2), (105, 15.2)]:
+    d.ellipse([P(x) - 3, P(y) - 3, P(x) + 3, P(y) + 3], outline=(110, 110, 116))
+for y in (6.6, 9.5, 12.4):                                                                          # cane-back bar stools, cognac seats
+    x = P(80.4)
+    d.ellipse([x - 7, P(y) - 7, x + 7, P(y) + 7], fill=(186, 116, 62), outline=PAL['outline'])
+    d.ellipse([x - 4, P(y) - 5, x + 1, P(y) - 1], fill=(214, 150, 92))
+    d.arc([x - 10, P(y) - 9, x + 4, P(y) + 9], 110, 250, fill=(214, 184, 130), width=3)
 # master: bed centered on the right wall, headboard against it
 bed_side(21, 12, 33, 24, (110, 130, 170), (80, 100, 140), head='right')
 box(30.5, 9.5, 33, 11.8, (150, 100, 60), hi=(180, 130, 90)); box(30.5, 24.2, 33, 26.5, (150, 100, 60), hi=(180, 130, 90))
