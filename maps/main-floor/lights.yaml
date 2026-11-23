@@ -14,8 +14,16 @@ lights:
     room: living
     entity: light.living_room
     x: 55.2
-    y: 6.8
+    y: 10.2           # nudged down from 6.8 so it doesn't sit on the record player
     radius: 26
+
+  - id: record_player_lamp
+    name: Record player lamp
+    room: living
+    entity: light.record_player_lamp
+    x: 58.6
+    y: 6.6
+    radius: 10
 
   - id: kitchen
     name: Kitchen
@@ -154,6 +162,32 @@ lights:
     fixtures:            # one entity, two fixtures on either side of the garage door
       - {x: 66.3, y: 77.8}
       - {x: 100.2, y: 77.6}
+
+# Window blinds (Home Assistant cover entities). The window spans cols c0..c1 on wall row `row`.
+covers:
+  - id: m_bedroom_blinds
+    name: M bedroom blinds
+    room: m_bedroom
+    entity: cover.m_bedroom_blinds
+    row: 69
+    c0: 38
+    c1: 44
+
+  - id: g_room_blinds
+    name: G room blinds
+    room: g_room
+    entity: cover.g_room_blinds
+    row: 69
+    c0: 14
+    c1: 19
+
+  - id: master_blinds
+    name: Master blinds
+    room: master
+    entity: cover.master_blinds
+    row: 4
+    c0: 18
+    c1: 25
 
 # Ceiling fans. Both also have a light kit, listed above as *_fan_light.
 fans:

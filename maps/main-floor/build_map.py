@@ -507,46 +507,55 @@ def castle_bed(c0, r0, c1, r1):
         d.polygon([(cx + 1, cy - 16), (cx + 9, cy - 13), (cx + 1, cy - 10)], fill=(250, 220, 90), outline=(170, 120, 40))
 
 def bronco(c0, r0, c1, r1):
-    """Boxy marsh-grey Bronco, nose toward the garage door (down), spare tire on the back."""
-    body, body_d, body_l = (128, 134, 128), (100, 106, 102), (156, 162, 156)
-    black = (34, 34, 38)
-    # tires peeking out under black fender flares
-    for (x, y) in [(c0 - .4, r0 + 4.5), (c1 - 1.2, r0 + 4.5), (c0 - .4, r1 - 9), (c1 - 1.2, r1 - 9)]:
-        d.rectangle([P(x), P(y), P(x + 1.6) - 1, P(y + 5) - 1], fill=black)
-        d.rectangle([P(x) - 2, P(y) - 3, P(x + 1.6) + 1, P(y + 5) + 2], outline=(52, 52, 56))
-    d.rectangle([P(c0), P(r0 + 1), P(c1) - 1, P(r1) - 1], fill=body, outline=PAL['outline'])
-    # hood (front, bottom) with center crease and vents
-    hood_top = r1 - 8.5
-    d.rectangle([P(c0) + 3, P(hood_top), P(c1) - 4, P(r1) - 5], fill=body_l)
-    d.line([P((c0 + c1) / 2), P(hood_top) + 2, P((c0 + c1) / 2), P(r1) - 7], fill=body_d)
-    for i in range(3):
-        d.line([P(c0) + 8, P(hood_top) + 6 + i * 3, P(c0) + 18, P(hood_top) + 6 + i * 3], fill=body_d)
-        d.line([P(c1) - 19, P(hood_top) + 6 + i * 3, P(c1) - 9, P(hood_top) + 6 + i * 3], fill=body_d)
-    # grille + round headlights + bumper
-    d.rectangle([P(c0) + 2, P(r1) - 5, P(c1) - 3, P(r1) - 2], fill=black)
-    for x in (P(c0) + 6, P(c1) - 11):
-        d.ellipse([x, P(r1) - 6, x + 5, P(r1) - 1], fill=(250, 240, 180), outline=PAL['outline'])
-    d.rectangle([P(c0) - 1, P(r1) - 1, P(c1), P(r1) + 1], fill=(52, 52, 56))
-    # windshield, black hardtop with sunroof panels, rear window
-    ws = hood_top - 2.2
-    d.rectangle([P(c0) + 4, P(ws), P(c1) - 5, P(hood_top) - 1], fill=(110, 160, 196), outline=PAL['outline'])
-    d.line([P(c0) + 6, P(ws) + 3, P(c0) + 14, P(ws) + 3], fill=(200, 230, 246))
-    d.rectangle([P(c0) + 3, P(r0 + 3), P(c1) - 4, P(ws) - 1], fill=body_d, outline=PAL['outline'])
-    d.line([P(c0) + 4, P(r0 + 3) + 1, P(c1) - 5, P(r0 + 3) + 1], fill=body_l)
-    for i in range(2):                                                    # removable roof panels
-        y0 = P(r0 + 5 + i * 6)
-        d.rectangle([P(c0) + 7, y0, P(c1) - 8, y0 + 40], fill=(44, 44, 50), outline=(24, 24, 28))
-    for y in range(P(r0 + 18), P(ws) - 4, 6):                              # roof rack slats
-        d.line([P(c0) + 6, y, P(c1) - 7, y], fill=(70, 74, 72))
-    d.rectangle([P(c0) + 5, P(r0 + 1.4), P(c1) - 6, P(r0 + 2.8)], fill=(110, 160, 196))
+    """Marsh-grey (warm taupe-brown) Bronco, nose toward the garage door, spare tire on the back.
+    Rounded body, chunky black fender flares, black hardtop, round headlights in a black grille."""
+    body, body_d, body_l = (138, 118, 94), (104, 86, 66), (172, 152, 124)
+    black, black_l = (34, 32, 34), (70, 66, 66)
+    x0, y0, x1, y1 = P(c0), P(r0), P(c1) - 1, P(r1) - 1
+    # tires + rounded fender flares sticking out past the body
+    for wy in (y0 + 30, y1 - 52):
+        for wx in (x0 - 4, x1 - 6):
+            d.rounded_rectangle([wx, wy, wx + 10, wy + 36], radius=4, fill=black, outline=PAL['outline'])
+            d.line([wx + 2, wy + 4, wx + 2, wy + 32], fill=black_l)
+    # body
+    d.rounded_rectangle([x0, y0 + 6, x1, y1], radius=9, fill=body, outline=PAL['outline'])
+    d.rounded_rectangle([x0 + 2, y0 + 8, x1 - 2, y1 - 2], radius=8, outline=body_l)
+    # hood: rounded, with a soft highlight and two creases
+    hood = y1 - 84
+    d.rounded_rectangle([x0 + 5, hood, x1 - 5, y1 - 14], radius=6, fill=body_l, outline=body_d)
+    d.rounded_rectangle([x0 + 10, hood + 4, x1 - 28, hood + 12], radius=3, fill=(190, 172, 146))
+    d.line([x0 + 30, hood + 3, x0 + 30, y1 - 17], fill=body_d)
+    d.line([x1 - 30, hood + 3, x1 - 30, y1 - 17], fill=body_d)
+    # black grille with big round headlights
+    d.rounded_rectangle([x0 + 3, y1 - 13, x1 - 3, y1 - 3], radius=3, fill=black)
+    for hx in (x0 + 7, x1 - 17):
+        d.ellipse([hx, y1 - 13, hx + 10, y1 - 3], fill=(250, 244, 200), outline=PAL['outline'])
+        d.ellipse([hx + 3, y1 - 10, hx + 6, y1 - 7], fill=(255, 255, 240))
+    for gx in range(x0 + 22, x1 - 21, 5):
+        d.line([gx, y1 - 11, gx, y1 - 5], fill=black_l)
+    d.rounded_rectangle([x0 - 2, y1 - 2, x1 + 2, y1 + 3], radius=2, fill=black, outline=PAL['outline'])   # bumper
+    # windshield, black hardtop, rear glass
+    ws = hood - 14
+    d.rounded_rectangle([x0 + 6, ws, x1 - 6, hood - 2], radius=3, fill=(120, 168, 200), outline=PAL['outline'])
+    d.line([x0 + 9, ws + 3, x0 + 24, ws + 3], fill=(210, 236, 250))
+    # color-matched hardtop with two black removable roof panels over the front seats
+    d.rounded_rectangle([x0 + 5, y0 + 14, x1 - 5, ws - 2], radius=5, fill=body_d, outline=PAL['outline'])
+    d.line([x0 + 8, y0 + 16, x1 - 8, y0 + 16], fill=body)
+    mid = (x0 + x1) // 2
+    d.rounded_rectangle([x0 + 9, ws - 44, mid - 2, ws - 6], radius=3, fill=black, outline=PAL['outline'])
+    d.rounded_rectangle([mid + 2, ws - 44, x1 - 9, ws - 6], radius=3, fill=black, outline=PAL['outline'])
+    d.line([x0 + 11, ws - 42, mid - 5, ws - 42], fill=black_l); d.line([mid + 4, ws - 42, x1 - 12, ws - 42], fill=black_l)
+    for ry in range(y0 + 24, ws - 52, 10):                                 # rear roof ribs
+        d.line([x0 + 9, ry, x1 - 9, ry], fill=(92, 76, 58))
+    d.rounded_rectangle([x0 + 8, y0 + 8, x1 - 8, y0 + 13], radius=2, fill=(120, 168, 200))
     # mirrors
-    for x in (P(c0) - 5, P(c1) + 1):
-        d.rectangle([x, P(hood_top) - 6, x + 3, P(hood_top) - 1], fill=black)
-    # spare tire on the back (top)
-    cx = P((c0 + c1) / 2)
-    d.ellipse([cx - 12, P(r0) - 9, cx + 12, P(r0) + 9], fill=black, outline=(70, 70, 76))
-    d.ellipse([cx - 6, P(r0) - 4, cx + 6, P(r0) + 4], fill=(150, 150, 156))
-    d.rectangle([cx - 1, P(r0) - 1, cx + 1, P(r0) + 1], fill=black)
+    for mx in (x0 - 6, x1 + 2):
+        d.rounded_rectangle([mx, hood - 12, mx + 4, hood - 5], radius=1, fill=black)
+    # spare tire on the back
+    cx = (x0 + x1) // 2
+    d.ellipse([cx - 13, y0 - 6, cx + 13, y0 + 12], fill=black, outline=PAL['outline'])
+    d.ellipse([cx - 7, y0 - 1, cx + 7, y0 + 7], fill=(150, 146, 140))
+    d.ellipse([cx - 2, y0 + 1, cx + 2, y0 + 5], fill=black)
 
 def bike(c, r, frame):
     x, y = P(c), P(r)
@@ -601,6 +610,17 @@ for y in (12.4, 16.8, 21.2):                                              # seat
     d.line([P(47.5) + 1, P(y + 4.4), P(51.3) - 1, P(y + 4.4)], fill=(176, 108, 28))
 box(41, 26, 45, 29, (150, 100, 60), hi=(180, 130, 90))                  # side table
 plant(35.5, 6.5); plant(58, 33.5)
+# record player credenza with a lamp, under the window wall
+box(52.5, 5, 60, 8.6, (126, 84, 52), hi=(160, 112, 72))
+tx, ty = P(55), P(6.7)
+d.rectangle([tx - 11, ty - 10, tx + 11, ty + 9], fill=(70, 50, 36), outline=PAL['outline'])   # turntable plinth
+d.ellipse([tx - 9, ty - 8, tx + 7, ty + 8], fill=(24, 22, 26), outline=(10, 8, 12))            # vinyl
+d.ellipse([tx - 6, ty - 5, tx + 4, ty + 5], outline=(52, 48, 56))
+d.ellipse([tx - 3, ty - 2, tx + 1, ty + 2], fill=(214, 70, 60))                                # label
+d.line([tx + 9, ty - 8, tx + 9, ty + 2, tx + 3, ty + 5], fill=(200, 200, 206), width=1)       # tonearm
+lx, ly = P(58.6), P(6.6)
+d.ellipse([lx - 8, ly - 8, lx + 8, ly + 8], fill=(244, 228, 186), outline=(150, 120, 80))     # lamp shade
+d.ellipse([lx - 4, ly - 4, lx + 4, ly + 4], fill=(252, 240, 210))
 # dining
 d.ellipse([P(64.5), P(10.5), P(71.5), P(17.5)], fill=(150, 98, 58), outline=PAL['outline'])
 d.ellipse([P(65.2), P(11.2), P(70.8), P(16.8)], fill=(176, 120, 74))
