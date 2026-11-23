@@ -524,7 +524,7 @@ function bindPanel() {
 }
 
 // ---- starting state: a lived-in evening (#off starts dark, #all-on lights everything; #<room> opens a room)
-const SAMPLE = ['living', 'dining', 'record_player_lamp', 'kitchen', 'kitchen_counter', 'upper_cabinet', 'hall_accent', 'm_bedroom', 'porch', 'garage_front', 'master_fan_light', 'back_door', 'master_closet', 'kitchen_sink'];
+const SAMPLE = ['dining', 'kitchen', 'kitchen_counter', 'upper_cabinet', 'hall_accent', 'm_bedroom', 'porch', 'garage_front', 'master_fan_light', 'back_door', 'master_closet', 'kitchen_sink'];
 const tag = location.hash.slice(1);
 if (tag === 'all-on') lights.forEach(l => { l.on = true; l.level = 1; });
 else if (tag !== 'off') {

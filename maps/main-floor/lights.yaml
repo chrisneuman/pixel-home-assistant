@@ -25,22 +25,6 @@ rooms:
   - {id: outside,     name: Outside,      includes: [outside]}
 
 lights:
-  - id: living
-    name: Living room
-    room: living
-    entity: light.living_room
-    x: 55.2
-    y: 10.2           # nudged down from 6.8 so it doesn't sit on the record player
-    radius: 26
-
-  - id: record_player_lamp
-    name: Record player lamp
-    room: living
-    entity: light.record_player_lamp
-    x: 58.6
-    y: 6.6
-    radius: 10
-
   - id: dining
     name: Dining room
     room: dining
