@@ -81,6 +81,9 @@ fill(14, 69, 19, 69, 'W')          # G room window over the bench
 fill(38, 69, 44, 69, 'W')          # M bedroom window
 fill(18, 4, 25, 4, 'W')            # master window
 fill(40, 4, 50, 4, 'B')            # living room window with blinds
+fill(4, 34, 4, 37, 'W')            # master bath window (left wall)
+fill(90, 4, 96, 4, 'W')            # kitchen window over the sink
+fill(69, 4, 77, 4, 'L')            # sliding glass door off the dining room
 # porch is an open slab; the front path runs straight down from the door side
 fill(52, 80, 57, 87, 'd')
 fill(64, 76, 101, 87, 'd')
@@ -202,7 +205,7 @@ for r in range(H):
                     col = PAL['drive_d'] if (x % 16 == 0 or y % 16 == 0 or h(x, y) % 29 == 0) else PAL['drive']
                 elif t in ' S':
                     col = floor_px(MAT[room_of[r][c]], x, y)
-                elif t in 'DFcZR#WB':
+                elif t in 'DFcZR#WBL':
                     col = PAL['wall']
                 px[x, y] = col
 
@@ -220,7 +223,7 @@ for ty in range(0, H * CELL - 16, 16):
         flower(tx + 4, ty + 4, petal); flower(tx + 11, ty + 10, petal)
 
 def is_wallish(c, r):
-    return 0 <= c < W and 0 <= r < H and grid[r][c] in '#DFcZWB'
+    return 0 <= c < W and 0 <= r < H and grid[r][c] in '#DFcZWBL'
 
 # walls: dark body, light top edge, floor drop shadow below
 for r in range(H):
@@ -259,9 +262,21 @@ for r in range(H):
                 d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(140, 136, 130))
         elif t in 'WB':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
-            d.rectangle([x0, y0 + 2, x0 + 7, y0 + 5], fill=(150, 206, 236))
+            if is_wallish(c, r - 1) and is_wallish(c, r + 1) and not (is_wallish(c - 1, r) and is_wallish(c + 1, r)):
+                d.rectangle([x0 + 2, y0, x0 + 5, y0 + 7], fill=(150, 206, 236))     # window in a side wall
+                d.line([x0 + 3, y0, x0 + 3, y0 + 7], fill=(214, 240, 252))
+                if r % 2 == 0: d.line([x0 + 2, y0, x0 + 5, y0], fill=(240, 236, 224))
+            else:
+                d.rectangle([x0, y0 + 2, x0 + 7, y0 + 5], fill=(150, 206, 236))
+                d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(214, 240, 252))
+                if c % 2 == 0: d.line([x0, y0 + 2, x0, y0 + 5], fill=(240, 236, 224))
+        elif t == 'L':                                              # sliding glass door
+            d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(196, 196, 204))
+            d.rectangle([x0, y0 + 1, x0 + 7, y0 + 6], fill=(150, 206, 236))
             d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(214, 240, 252))
-            if c % 2 == 0: d.line([x0, y0 + 2, x0, y0 + 5], fill=(240, 236, 224))
+            if grid[r][c - 1] != 'L' or grid[r][c + 1] != 'L': d.line([x0 + (0 if grid[r][c - 1] != 'L' else 7), y0, x0 + (0 if grid[r][c - 1] != 'L' else 7), y0 + 7], fill=(120, 120, 130))
+            lc = [k for k in range(W) if grid[r][k] == 'L']
+            if c == (min(lc) + max(lc)) // 2: d.line([x0 + 4, y0, x0 + 4, y0 + 7], fill=(120, 120, 130))
         elif t == 'Z':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(220, 220, 214))
             d.line([x0, y0 + 2, x0 + 7, y0 + 2], fill=(170, 170, 166))
@@ -293,10 +308,11 @@ for r in range(H):
 # Inside: plaster with a baseboard. Outside: brick.
 for r in range(1, H):
     for c in range(W):
-        if grid[r - 1][c] not in '#WB' or grid[r][c] in '#DFcZWB': continue
+        if grid[r - 1][c] not in '#WBL' or grid[r][c] in '#DFcZWBL': continue
         x0, y0 = c * CELL, r * CELL
         outside = grid[r][c] in '.dp' or room_of[r][c] == 'porch'
         win = grid[r - 1][c] in 'WB'
+        slider = grid[r - 1][c] == 'L'
         for y in range(y0, y0 + 6):
             for x in range(x0, x0 + 8):
                 k = y - y0
@@ -313,6 +329,11 @@ for r in range(1, H):
                     elif grid[r - 1][c] == 'B': col = (238, 232, 216) if k != 2 else (196, 188, 170)   # blinds
                     else: col = (214, 240, 252) if (x + k) % 7 == 0 else (130, 192, 230)
                 if win and k == 4: col = (250, 248, 240)                  # sill
+                if slider:                                             # floor-to-ceiling glass panel
+                    end = grid[r - 1][c - 1] != 'L' and x == x0 or grid[r - 1][c + 1] != 'L' and x == x0 + 7
+                    lc = [q for q in range(W) if grid[r - 1][q] == 'L']
+                    mull = c == (min(lc) + max(lc)) // 2 and x == x0 + 4
+                    col = (190, 190, 200) if (end or mull or k == 5) else (214, 240, 252) if (x + k) % 6 == 0 else (130, 192, 230)
                 px[x, y] = col
         for x in range(x0, x0 + 8):                                   # soft shadow under the face
             for y in (y0 + 6, y0 + 7):
@@ -645,7 +666,7 @@ for y in (6.5, 9.5, 12.5):
 bed_side(21, 12, 33, 24, (110, 130, 170), (80, 100, 140), head='right')
 box(30.5, 9.5, 33, 11.8, (150, 100, 60), hi=(180, 130, 90)); box(30.5, 24.2, 33, 26.5, (150, 100, 60), hi=(180, 130, 90))
 box(12, 5, 20, 7.5, (150, 100, 60), hi=(180, 130, 90))                  # dresser
-fan(19.7, 16.8)
+# ceiling fans are drawn live by the card (they spin when on)
 # bathrooms
 # master bath: shower on the right, toilet beside it facing up, sink bottom-left
 shower(17, 32, 22, 40); toilet_up(14.4, 37); vanity(5, 38, 11, 40, basin='bottom')
@@ -657,7 +678,6 @@ rug(18, 55, 27, 62, (250, 236, 190), (120, 170, 150))
 builtins(5, 66, 13, 69)
 builtins(20, 66, 29, 69)
 window_bench(13, 66.4, 20, 69)
-fan(15.4, 63, blade=(196, 182, 170))
 # M bedroom: castle bed in the bottom-right corner along the right wall
 castle_bed(40.5, 49, 50, 69)
 box(34, 42, 40, 44.2, (150, 100, 60), hi=(180, 130, 90))                  # dresser
@@ -710,7 +730,7 @@ with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
     json.dump({
         "cell_px": CELL, "cell_feet": 0.5, "width": W, "height": H,
         "legend": {".": "grass", "#": "wall", " ": "floor", "D": "door", "F": "front door",
-                   "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window", "B": "window with blinds",
+                   "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window", "B": "window with blinds", "L": "sliding glass door",
                    "S": "stairs", "p": "porch steps", "d": "driveway"},
         "tiles": [''.join(row) for row in grid],
         "rooms": [{"id": rid, "name": name, "floor": mat, "rects": rects}

@@ -1,5 +1,6 @@
 # Main floor lights, traced from the white dots on the Floorplanner export.
-# x / y are map cells (or a `fixtures` list of x/y when one entity drives several fixtures) (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
+# x / y are map cells (or a `fixtures` list of x/y when one entity drives several fixtures,
+#   or `strip: {x0, y0, x1, y1}` for an LED strip; `rgb: true` strips glow in their color) (1 cell = 6 inches, 0,0 = top-left of main-floor.png, 8 px per cell).
 # entity: placeholder Home Assistant ids. Replace each with the real one
 #   (Settings > Devices & services > Entities, or Developer tools > States).
 # radius: how far the glow reaches, in cells. Glow never passes through walls or closed doors.
@@ -50,12 +51,22 @@ lights:
     radius: 10
 
   - id: upper_cabinet
-    name: Upper cabinet
+    name: Upper cabinet strip
     room: kitchen
     entity: light.upper_cabinet
-    x: 104.8
-    y: 17.3
-    radius: 10
+    rgb: true
+    color: [120, 200, 255]   # preview color; in HA the strip's real color is used
+    strip: {x0: 102.4, y0: 9.8, x1: 102.4, y1: 21.6}
+    radius: 6
+
+  - id: hall_accent
+    name: Hall accent strip
+    room: hall
+    entity: light.hall_accent
+    rgb: true
+    color: [190, 110, 255]
+    strip: {x0: 34.2, y0: 40.6, x1: 49.6, y1: 40.6}
+    radius: 6
 
   - id: entry
     name: Entry
@@ -189,7 +200,8 @@ covers:
     c0: 18
     c1: 25
 
-# Ceiling fans. Both also have a light kit, listed above as *_fan_light.
+# Ceiling fans, controlled separately from their light kits (listed above as *_fan_light).
+# Tap the blades to toggle the fan, the center to toggle its light.
 fans:
   - id: master_fan
     name: Master fan
@@ -197,9 +209,11 @@ fans:
     entity: fan.master
     x: 19.7
     y: 16.8
+    blade: [70, 52, 44]
   - id: g_room_fan
     name: G room fan
     room: g_room
     entity: fan.g_room
     x: 15.4
     y: 63.0
+    blade: [196, 182, 170]
