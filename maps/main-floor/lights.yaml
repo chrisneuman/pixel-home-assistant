@@ -154,8 +154,8 @@ lights:
     name: G room fan light
     room: g_room
     entity: light.g_room_fan
-    x: 15.4
-    y: 63.0
+    x: 17.0
+    y: 61.0
     radius: 22
 
   - id: back_door
@@ -215,6 +215,6 @@ fans:
     name: G room fan
     room: g_room
     entity: fan.g_room
-    x: 15.4
-    y: 63.0
+    x: 17.0
+    y: 61.0
     blade: [196, 182, 170]
