@@ -26,6 +26,14 @@ lights:
     y: 6.6
     radius: 10
 
+  - id: dining
+    name: Dining room
+    room: dining
+    entity: light.dining_room
+    x: 68.0
+    y: 14.0
+    radius: 16
+
   - id: kitchen
     name: Kitchen
     room: kitchen

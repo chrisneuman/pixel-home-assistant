@@ -360,7 +360,7 @@ document.getElementById('labels').onchange = e => { showLabels = e.target.checke
 const h = location.hash.slice(1);
 if (h === 'on') lights.forEach(l => { l.on = true; l.level = 1; });
 if (h === 'mixed') { covers.forEach(c => { c.closed = true; c.level = 1; }); fans.forEach(f => { f.on = true; f.speed = 1; }); }
-if (h === 'mixed') lights.forEach(l => { l.on = ['living','record_player_lamp','master_closet','kitchen','kitchen_counter','kitchen_sink','upper_cabinet','hall_accent','m_bedroom','porch','garage_front','master_fan_light'].includes(l.id); l.level = l.on ? 1 : 0; });
+if (h === 'mixed') lights.forEach(l => { l.on = ['living','dining','record_player_lamp','master_closet','kitchen','kitchen_counter','kitchen_sink','upper_cabinet','hall_accent','m_bedroom','porch','garage_front','master_fan_light'].includes(l.id); l.level = l.on ? 1 : 0; });
 renderLegend();
 map.onload = () => paint(performance.now());
 requestAnimationFrame(frame);
