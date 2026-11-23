@@ -217,7 +217,7 @@
   {
    "id": "kitchen",
    "name": "Kitchen",
-   "floor": "tile_check",
+   "floor": "wood",
    "rects": [
     [
      81,

@@ -33,7 +33,7 @@ ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
     ("main_bath",     "Main bath",     "tile_white",   [(5, 41, 21, 48)]),
     ("living",        "Living",        "wood",        [(34, 5, 59, 37)]),
     ("dining",        "Dining room",   "wood",        [(60, 5, 80, 21), (60, 22, 78, 26)]),
-    ("kitchen",       "Kitchen",       "tile_check",  [(81, 5, 105, 21)]),
+    ("kitchen",       "Kitchen",       "wood",        [(81, 5, 105, 21)]),
     ("hall",          "Hall",          "wood",        [(28, 38, 59, 40), (23, 41, 32, 51), (51, 41, 59, 53)]),
     ("stairs",        "Stairs",        "darkwood",    [(60, 28, 81, 34), (80, 23, 81, 27)]),
     ("mud_room",      "Mud room",      "tile_check",  [(83, 23, 105, 34)]),
@@ -776,6 +776,42 @@ box(84, 23, 92, 25.5, (150, 100, 60), hi=(180, 130, 90))                # bench
 for x in (85, 87.5, 90):                                                  # boots under the bench
     box(x, 25.6, x + 1, 26.6, (90, 60, 40)); box(x + 1.1, 25.6, x + 2.1, 26.6, (90, 60, 40))
 washer_dryer_stack(101.4, 27, 106, 35)
+
+# master closet: clothes on a rod along the left wall, folded sweaters on a shelf, shoes at the end
+def closet_clothes(c, r0, r1, seed=3):
+    import random
+    rng = random.Random(seed)
+    cols = [(64, 86, 124), (232, 228, 218), (150, 60, 58), (90, 110, 80), (40, 40, 48), (196, 170, 132),
+            (120, 150, 190), (230, 190, 200), (88, 70, 58), (210, 120, 70), (250, 250, 244), (70, 70, 110)]
+    x0, x1 = P(c) + 1, P(c) + 15
+    d.line([P(c) + 8, P(r0) - 2, P(c) + 8, P(r1) + 1], fill=(150, 150, 156))           # rod
+    y = P(r0)
+    while y < P(r1) - 2:
+        col = rng.choice(cols); dark = tuple(int(v * .72) for v in col)
+        th = rng.choice([2, 3, 3, 4])                                                   # sweater vs shirt
+        w = rng.choice([0, 0, 1, 2])
+        d.rectangle([x0 + w, y, x1 - w, y + th], fill=col, outline=PAL['outline'])
+        d.line([x0 + w + 1, y + th - 1, x1 - w - 1, y + th - 1], fill=dark)
+        d.point((P(c) + 8, y - 1), fill=(190, 190, 196))                               # hanger hook
+        y += th + 2
+def folded(c, r, cols):
+    for i, col in enumerate(cols):
+        x = P(c) + i * 6
+        d.rectangle([x, P(r), x + 5, P(r) + 5], fill=col, outline=PAL['outline'])
+        d.line([x + 1, P(r) + 2, x + 4, P(r) + 2], fill=tuple(int(v * .75) for v in col))
+def shoes(c, r, n, seed=5):
+    import random
+    rng = random.Random(seed)
+    for i in range(n):
+        col = rng.choice([(40, 30, 26), (150, 96, 60), (236, 236, 232), (120, 40, 50), (60, 70, 90)])
+        y = P(r) + i * 6
+        for dx in (0, 4):
+            d.rectangle([P(c) + dx, y, P(c) + dx + 2, y + 4], fill=col, outline=PAL['outline'])
+closet_clothes(5, 6, 17, seed=3)
+closet_clothes(5, 18.5, 26, seed=8)
+folded(5.1, 26.6, [(200, 180, 150), (90, 110, 140)])
+shoes(5.2, 28, 2)
+
 # porch
 box(53, 55.2, 57, 56.6, (150, 110, 70))                                 # door mat
 box(26, 71, 32, 73, (150, 100, 60), hi=(180, 130, 90))                   # porch bench
