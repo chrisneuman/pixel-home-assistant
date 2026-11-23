@@ -35,7 +35,7 @@ ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
     ("dining",        "Dining room",   "wood",        [(60, 5, 80, 21), (60, 22, 78, 26)]),
     ("kitchen",       "Kitchen",       "tile_check",  [(81, 5, 105, 21)]),
     ("hall",          "Hall",          "wood",        [(28, 38, 59, 40), (23, 41, 32, 51), (51, 41, 59, 53)]),
-    ("stairs",        "Stairs",        "darkwood",    [(61, 28, 82, 34), (80, 23, 81, 27)]),
+    ("stairs",        "Stairs",        "darkwood",    [(60, 28, 81, 34), (80, 23, 81, 27)]),
     ("mud_room",      "Mud room",      "tile_check",  [(83, 23, 105, 34)]),
     ("garage",        "Garage",        "concrete",    [(61, 36, 104, 74)]),
     ("g_room",        "G room",        "carpet_pink", [(5, 53, 28, 68)]),
@@ -59,8 +59,7 @@ WALLS = [
 ]
 for w in WALLS:
     fill(*w, '#')
-fill(82, 28, 82, 34, ' ')          # stairs open into the mud room
-fill(61, 28, 82, 34, 'S')
+fill(60, 28, 81, 34, 'S')          # stairs open to the living room on the left; wall on the mud room side
 for r in range(23, 28):            # little nook beside the stairs
     fill(80, r, 81, r, ' ')
 # doors
@@ -79,6 +78,9 @@ for r in list(range(7, 15)) + list(range(19, 29)):
     grid[r][9] = 'c'               # master closet sliders
 fill(6, 52, 20, 52, 'c')           # G room closet sliders
 fill(14, 69, 19, 69, 'W')          # G room window over the bench
+fill(38, 69, 44, 69, 'W')          # M bedroom window
+fill(18, 4, 25, 4, 'W')            # master window
+fill(40, 4, 50, 4, 'B')            # living room window with blinds
 # porch is an open slab; the front path runs straight down from the door side
 fill(52, 80, 57, 87, 'd')
 fill(64, 76, 101, 87, 'd')
@@ -93,10 +95,12 @@ MAT = {rid: mat for rid, _, mat, _ in ROOMS}
 
 # ---------------------------------------------------------------- palette
 PAL = dict(
-    grass=(92, 160, 72), grass_d=(70, 132, 60), grass_l=(124, 186, 92),
+    grass=(88, 168, 64), grass_d=(48, 120, 48), grass_l=(144, 208, 96),
     flower_r=(232, 96, 96), flower_y=(250, 220, 90), flower_w=(240, 240, 240),
-    wall=(58, 46, 66), wall_top=(112, 92, 122), wall_d=(36, 28, 42),
-    wood=(196, 136, 82), wood_d=(166, 108, 62), wood_l=(214, 158, 104),
+    wall=(92, 70, 98), wall_top=(150, 122, 156), wall_d=(40, 26, 46),
+    face=(236, 214, 172), face_d=(206, 180, 140), face_l=(250, 236, 204), base=(124, 82, 52),
+    brick=(184, 100, 72), brick_d=(132, 64, 48), brick_l=(214, 140, 104),
+    wood=(206, 138, 76), wood_d=(150, 92, 48), wood_l=(232, 172, 108),
     dwood=(132, 90, 58), dwood_d=(104, 70, 44),
     carpet_tan=(214, 190, 150), carpet_tan_d=(198, 172, 132),
     carpet_pink=(232, 168, 176), carpet_pink_d=(214, 148, 160),
@@ -123,18 +127,27 @@ def floor_px(mat, x, y):
         if y % 6 == 5: return PAL['wood_d']
         off = (row * 13) % 24
         if (x + off) % 24 == 0: return PAL['wood_d']
-        return PAL['wood_l'] if h(x // 3, row) % 11 == 0 else PAL['wood']
+        if y % 6 == 0 or (x + off) % 24 == 1: return PAL['wood_l']
+        if (x + off) % 24 == 23: return (186, 120, 64)
+        return PAL['wood']
     if mat == 'darkwood':
         row = y // 5
         if y % 5 == 4 or (x + row * 7) % 16 == 0: return PAL['dwood_d']
         return PAL['dwood']
     if mat.startswith('carpet'):
         base = PAL[mat]; dk = PAL[mat + '_d']
-        return dk if (h(x, y) % 7 == 0 or (x + y) % 4 == 0 and h(x, y, 1) % 3 == 0) else base
+        if (x % 4 == 0 and y % 4 == 0) or (x % 4 == 2 and y % 4 == 2): return dk
+        return base
     if mat == 'tile_check':
-        return PAL['tile_a'] if ((x // 8) + (y // 8)) % 2 == 0 else PAL['tile_b']
+        a = ((x // 8) + (y // 8)) % 2 == 0
+        base = PAL['tile_a'] if a else PAL['tile_b']
+        if x % 8 == 0 or y % 8 == 0: return tuple(min(255, v + 14) for v in base)
+        if x % 8 == 7 or y % 8 == 7: return tuple(int(v * .84) for v in base)
+        return base
     if mat == 'tile_white':
-        return (214, 214, 220) if x % 8 == 0 or y % 8 == 0 else (246, 246, 244)
+        if x % 8 == 7 or y % 8 == 7: return (200, 202, 212)
+        if x % 8 == 0 or y % 8 == 0: return (255, 255, 255)
+        return (240, 240, 238)
     if mat == 'tile_blue':
         return PAL['tile_blue_d'] if x % 6 == 0 or y % 6 == 0 else PAL['tile_blue']
     if mat == 'concrete':
@@ -151,10 +164,30 @@ def floor_px(mat, x, y):
         return PAL['stone']
     return (255, 0, 255)
 
+GRASS_TILE = [
+    "................",
+    "..l.............",
+    ".d.d............",
+    "................",
+    "................",
+    "..........l.....",
+    ".........d.d....",
+    "................",
+    "................",
+    "....l...........",
+    "...d.d..........",
+    "................",
+    "................",
+    ".............l..",
+    "............d.d.",
+    "................",
+]
 def grass_px(x, y):
-    v = h(x, y, 3) % 40
-    if v < 3: return PAL['grass_d']
-    if v == 3: return PAL['grass_l']
+    # big 32px blocks alternate the tuft layout so the tiling doesn't read as a grid
+    flip = h(x // 32, y // 32, 9) % 2
+    t = GRASS_TILE[y % 16][(15 - x % 16) if flip else x % 16]
+    if t == 'd': return PAL['grass_d']
+    if t == 'l': return PAL['grass_l']
     return PAL['grass']
 
 # base layer
@@ -169,25 +202,25 @@ for r in range(H):
                     col = PAL['drive_d'] if (x % 16 == 0 or y % 16 == 0 or h(x, y) % 29 == 0) else PAL['drive']
                 elif t in ' S':
                     col = floor_px(MAT[room_of[r][c]], x, y)
-                elif t in 'DFcZR#W':
+                elif t in 'DFcZR#WB':
                     col = PAL['wall']
                 px[x, y] = col
 
 # grass tufts and flowers
-for _ in range(500):
-    x, y = rng.randrange(W * CELL), rng.randrange(H * CELL)
-    if grid[y // CELL][x // CELL] != '.': continue
-    if rng.random() < 0.12:
-        col = rng.choice([PAL['flower_r'], PAL['flower_y'], PAL['flower_w']])
-        for dx, dy in [(0, -1), (-1, 0), (1, 0), (0, 1)]:
-            if 0 <= x + dx < W * CELL and 0 <= y + dy < H * CELL: px[x + dx, y + dy] = col
-        px[x, y] = PAL['flower_y'] if col != PAL['flower_y'] else PAL['flower_r']
-    else:
-        for dx, dy in [(0, 0), (-1, -1), (1, -1), (0, -2)]:
-            if 0 <= x + dx < W * CELL and 0 <= y + dy < H * CELL: px[x + dx, y + dy] = PAL['grass_d']
+def flower(x, y, petal):
+    for dx, dy in [(0, -2), (-2, 0), (2, 0), (0, 2), (-1, -1), (1, -1), (-1, 1), (1, 1)]:
+        px[x + dx, y + dy] = petal
+    px[x, y] = PAL['flower_y'] if petal != PAL['flower_y'] else PAL['flower_r']
+    px[x - 1, y + 3] = px[x, y + 3] = px[x + 1, y + 3] = PAL['grass_d']
+for ty in range(0, H * CELL - 16, 16):
+    for tx in range(0, W * CELL - 16, 16):
+        if any(grid[(ty + k) // CELL][(tx + j) // CELL] != '.' for k in (0, 15) for j in (0, 15)): continue
+        if h(tx, ty, 11) % 23 != 0: continue
+        petal = [PAL['flower_w'], PAL['flower_r'], PAL['flower_w'], PAL['flower_y']][h(tx, ty, 12) % 4]
+        flower(tx + 4, ty + 4, petal); flower(tx + 11, ty + 10, petal)
 
 def is_wallish(c, r):
-    return 0 <= c < W and 0 <= r < H and grid[r][c] in '#DFcZW'
+    return 0 <= c < W and 0 <= r < H and grid[r][c] in '#DFcZWB'
 
 # walls: dark body, light top edge, floor drop shadow below
 for r in range(H):
@@ -196,8 +229,11 @@ for r in range(H):
         x0, y0 = c * CELL, r * CELL
         if t == '#':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
-            if not is_wallish(c, r - 1): d.line([x0, y0, x0 + 7, y0], fill=PAL['wall_top'])
+            if (c + r) % 2 == 0: d.point([(x0 + 3, y0 + 3), (x0 + 5, y0 + 5)], fill=(104, 82, 110))
+            if not is_wallish(c, r - 1): d.line([x0, y0, x0 + 7, y0], fill=PAL['wall_d']); d.line([x0, y0 + 1, x0 + 7, y0 + 1], fill=PAL['wall_top'])
             if not is_wallish(c, r + 1): d.line([x0, y0 + 7, x0 + 7, y0 + 7], fill=PAL['wall_d'])
+            if not is_wallish(c - 1, r): d.line([x0, y0, x0, y0 + 7], fill=PAL['wall_d'])
+            if not is_wallish(c + 1, r): d.line([x0 + 7, y0, x0 + 7, y0 + 7], fill=PAL['wall_d'])
         elif t in 'DF':
             under = None
             for nc, nr in [(c, r - 1), (c, r + 1), (c - 1, r), (c + 1, r)]:
@@ -221,7 +257,7 @@ for r in range(H):
                 d.line([x0 + 3, y0, x0 + 3, y0 + 7], fill=(140, 136, 130))
             else:
                 d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(140, 136, 130))
-        elif t == 'W':
+        elif t in 'WB':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
             d.rectangle([x0, y0 + 2, x0 + 7, y0 + 5], fill=(150, 206, 236))
             d.line([x0, y0 + 3, x0 + 7, y0 + 3], fill=(214, 240, 252))
@@ -246,27 +282,58 @@ for r in range(H):
                 if r % 3 == 0: d.rectangle([x0 + 1, y0 + 2, x0 + 6, y0 + 4], fill=(250, 248, 240))
         elif t == 'S':
             # treads run vertical (stairs descend left to right toward the mud room)
-            shade = 150 + int(60 * (c - 61) / 21)
+            shade = 214 - int(70 * (c - 60) / 21)   # top step on the left, descending right
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(shade, int(shade * .72), int(shade * .5)))
             if c % 2 == 0: d.line([x0, y0, x0, y0 + 7], fill=(80, 56, 40))
         elif t == 'p':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=(196, 188, 172))
             d.line([x0, y0 + 4, x0 + 7, y0 + 4], fill=(150, 142, 128))
 
-# drop shadow on floors directly below walls
+# 3/4 view: every wall shows its front face on the cell below it.
+# Inside: plaster with a baseboard. Outside: brick.
 for r in range(1, H):
     for c in range(W):
-        if grid[r][c] in ' S' and grid[r - 1][c] == '#':
-            for x in range(c * CELL, c * CELL + 8):
-                for y in range(r * CELL, r * CELL + 2):
-                    rr, gg, bb = px[x, y]
-                    px[x, y] = (int(rr * .7), int(gg * .7), int(bb * .75))
+        if grid[r - 1][c] not in '#WB' or grid[r][c] in '#DFcZWB': continue
+        x0, y0 = c * CELL, r * CELL
+        outside = grid[r][c] in '.dp' or room_of[r][c] == 'porch'
+        win = grid[r - 1][c] in 'WB'
+        for y in range(y0, y0 + 6):
+            for x in range(x0, x0 + 8):
+                k = y - y0
+                if outside:
+                    if k == 5: col = PAL['brick_d']
+                    elif k == 2 or (x + (4 if k > 2 else 0)) % 8 == 0: col = PAL['brick_d']
+                    elif k in (0, 3): col = PAL['brick_l']
+                    else: col = PAL['brick']
+                else:
+                    col = PAL['face_l'] if k == 0 else PAL['base'] if k >= 4 else PAL['face_d'] if k == 3 else PAL['face']
+                if win and 1 <= k <= 3:                                # window pane on the wall face
+                    edge = grid[r - 1][c - 1] not in 'WB' and x == x0 or grid[r - 1][c + 1] not in 'WB' and x == x0 + 7
+                    if edge: col = (246, 242, 232)
+                    elif grid[r - 1][c] == 'B': col = (238, 232, 216) if k != 2 else (196, 188, 170)   # blinds
+                    else: col = (214, 240, 252) if (x + k) % 7 == 0 else (130, 192, 230)
+                if win and k == 4: col = (250, 248, 240)                  # sill
+                px[x, y] = col
+        for x in range(x0, x0 + 8):                                   # soft shadow under the face
+            for y in (y0 + 6, y0 + 7):
+                rr, gg, bb = px[x, y]
+                f = .72 if y == y0 + 6 else .86
+                px[x, y] = (int(rr * f), int(gg * f), int(bb * f * 1.05))
+
+# furniture goes on its own layer so it can cast a 16-bit style drop shadow
+dbase = d
+layer = Image.new('RGBA', img.size, (0, 0, 0, 0))
+d = ImageDraw.Draw(layer)
 
 # ---------------------------------------------------------------- furniture sprites
 def P(v): return int(round(v * CELL))
 def box(c0, r0, c1, r1, fill, out=PAL['outline'], hi=None):
     d.rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], fill=fill, outline=out)
-    if hi: d.line([P(c0) + 1, P(r0) + 1, P(c1) - 2, P(r0) + 1], fill=hi)
+    hi = hi or tuple(min(255, int(v * 1.18) + 8) for v in fill)
+    d.line([P(c0) + 1, P(r0) + 1, P(c1) - 2, P(r0) + 1], fill=hi)
+    if P(r1) - P(r0) >= 10:                                               # front face
+        dk = tuple(int(v * .72) for v in fill)
+        d.rectangle([P(c0) + 1, P(r1) - 3, P(c1) - 2, P(r1) - 2], fill=dk)
 
 def bed(c0, r0, c1, r1, blanket, blanket_d):
     box(c0, r0, c1, r1, (120, 80, 50))                       # frame
@@ -278,6 +345,7 @@ def bed(c0, r0, c1, r1, blanket, blanket_d):
     d.rectangle([P(c0) + 2, P(r0 + 3.2) + 1, P(c1) - 3, P(r0 + 4.2)], fill=(250, 250, 246))
 
 def rug(c0, r0, c1, r1, col, border):
+    d = dbase                                                            # rugs lie flat: no shadow
     d.rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], fill=border)
     d.rectangle([P(c0) + 3, P(r0) + 3, P(c1) - 4, P(r1) - 4], fill=col)
     for y in range(P(r0) + 5, P(r1) - 5, 6):
@@ -288,13 +356,26 @@ def plant(c, r):
     d.ellipse([P(c) - 3, P(r) - 4, P(c) + 2, P(r) + 1], fill=(92, 170, 90))
 
 def tree(c, r):
-    d.ellipse([P(c) - 22, P(r) - 18, P(c) + 22, P(r) + 22], fill=(40, 96, 56))
-    d.ellipse([P(c) - 20, P(r) - 22, P(c) + 20, P(r) + 18], fill=(58, 128, 70), outline=(28, 70, 40))
-    d.ellipse([P(c) - 12, P(r) - 16, P(c) + 4, P(r) - 2], fill=(86, 160, 88))
+    x, y = P(c), P(r)
+    dark, mid, light, rim = (24, 72, 40), (40, 120, 56), (88, 176, 72), (152, 216, 104)
+    d.rectangle([x - 5, y + 10, x + 5, y + 24], fill=(120, 76, 40), outline=PAL['outline'])
+    d.line([x - 3, y + 12, x - 3, y + 22], fill=(160, 108, 60))
+    blobs = [(-14, -2), (14, -2), (0, -14), (-8, 10), (8, 10), (0, 0)]
+    for bx, by in blobs:
+        d.ellipse([x + bx - 14, y + by - 13, x + bx + 14, y + by + 13], fill=dark)
+    for bx, by in blobs:
+        d.ellipse([x + bx - 12, y + by - 11, x + bx + 12, y + by + 11], fill=mid)
+    for bx, by in blobs[:4]:
+        d.ellipse([x + bx - 8, y + by - 9, x + bx + 4, y + by + 1], fill=light)
+        d.point([(x + bx - 4, y + by - 6), (x + bx - 3, y + by - 6), (x + bx - 4, y + by - 5)], fill=rim)
 
 def bush(c, r):
-    d.ellipse([P(c) - 9, P(r) - 7, P(c) + 9, P(r) + 7], fill=(50, 116, 62), outline=(28, 70, 40))
-    d.ellipse([P(c) - 5, P(r) - 5, P(c) + 2, P(r)], fill=(84, 154, 84))
+    x, y = P(c), P(r)
+    d.ellipse([x - 9, y - 7, x + 9, y + 8], fill=(24, 72, 40))
+    d.ellipse([x - 8, y - 7, x + 8, y + 6], fill=(48, 136, 64))
+    d.ellipse([x - 6, y - 6, x + 1, y], fill=(104, 188, 80))
+    d.point([(x - 4, y - 4), (x - 3, y - 4)], fill=(168, 224, 112))
+    d.point([(x + 3, y + 1), (x - 1, y + 3), (x + 5, y - 2)], fill=(32, 96, 48))
 
 def toilet(c, r):
     box(c, r, c + 2, r + 1, (240, 240, 244))
@@ -513,9 +594,11 @@ def mushroom(c, r):
 # living room
 rug(37, 12, 46, 24, (176, 74, 66), (226, 190, 120))
 box(34, 13.5, 35, 22.5, (32, 32, 40), hi=(80, 80, 96))                  # wall TV
-box(48, 12, 52.5, 24, (220, 150, 40), hi=(244, 190, 90))                # sofa
-box(51, 12, 52.5, 24, (190, 120, 30))
-box(48, 12, 52.5, 13.2, (190, 120, 30)); box(48, 22.8, 52.5, 24, (190, 120, 30))
+box(47.5, 11, 53, 27, (220, 150, 40), hi=(244, 190, 90))                # sofa, 3 ft off the wall to the stairs
+box(51.3, 11, 53, 27, (190, 120, 30))
+box(47.5, 11, 53, 12.4, (190, 120, 30)); box(47.5, 25.6, 53, 27, (190, 120, 30))
+for y in (12.4, 16.8, 21.2):                                              # seat cushions
+    d.line([P(47.5) + 1, P(y + 4.4), P(51.3) - 1, P(y + 4.4)], fill=(176, 108, 28))
 box(41, 26, 45, 29, (150, 100, 60), hi=(180, 130, 90))                  # side table
 plant(35.5, 6.5); plant(58, 33.5)
 # dining
@@ -594,12 +677,20 @@ for c in range(26, 37, 4):
 for c in (45, 49):
     bush(c, 82)
 
+# composite: drop shadow (down-right), then the furniture layer
+alpha = layer.split()[3].point(lambda a: 96 if a > 0 else 0)
+shadow = Image.new('RGBA', img.size, (22, 10, 40, 0))
+shadow.putalpha(Image.new('L', img.size, 0))
+shadow.paste((22, 10, 40, 255), (3, 4), alpha.crop((0, 0, img.width - 3, img.height - 4)))
+sh_alpha = Image.new('L', img.size, 0); sh_alpha.paste(alpha.crop((0, 0, img.width - 3, img.height - 4)), (3, 4))
+shadow.putalpha(sh_alpha)
+img = Image.alpha_composite(Image.alpha_composite(img.convert('RGBA'), shadow), layer).convert('RGB')
 img.save(os.path.join(HERE, 'main-floor.png'))
 with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
     json.dump({
         "cell_px": CELL, "cell_feet": 0.5, "width": W, "height": H,
         "legend": {".": "grass", "#": "wall", " ": "floor", "D": "door", "F": "front door",
-                   "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window",
+                   "Z": "garage door", "c": "closet slider", "R": "porch railing", "W": "window", "B": "window with blinds",
                    "S": "stairs", "p": "porch steps", "d": "driveway"},
         "tiles": [''.join(row) for row in grid],
         "rooms": [{"id": rid, "name": name, "floor": mat, "rects": rects}
