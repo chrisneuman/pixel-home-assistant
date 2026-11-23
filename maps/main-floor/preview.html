@@ -192,8 +192,8 @@ function ambient(elev) {
   const t = a === b ? 0 : (elev - a[0]) / (b[0] - a[0]);
   let col = a[1].map((v, k) => Math.round(v + (b[1][k] - v) * t)), alpha = a[2] + (b[2] - a[2]) * t;
   if (weather !== 'clear') {                               // overcast: greyer, a bit darker
-    const m = weather === 'storm' ? .6 : .45;
-    col = col.map((v, k) => Math.round(v * (1 - m) + [60, 70, 92][k] * m)); alpha = Math.max(alpha, weather === 'storm' ? .34 : .24);
+    const m = weather === 'storm' ? .6 : .45, grey = weather === 'snow' ? [150, 160, 182] : [60, 70, 92];
+    col = col.map((v, k) => Math.round(v * (1 - m) + grey[k] * m)); alpha = Math.max(alpha, weather === 'storm' ? .34 : weather === 'snow' ? .18 : .24);
   }
   return { col, alpha, night: Math.min(1, alpha / .55) };
 }
@@ -238,6 +238,34 @@ function drawRain(dt) {
     if (flash <= 0 && Math.random() < dt / 9000) flash = 380;
     if (flash > 0) { flash -= dt; ctx.fillStyle = `rgba(230,236,255,${(flash % 190 > 95 ? .35 : .12) * Math.min(1, flash / 120)})`; ctx.fillRect(0, 0, PW, PH); }
   }
+}
+
+// ---- snow: drifting flakes, and a white blanket that builds up on the yard, deck and driveway
+let snowCover = 0;
+const flakes = Array.from({ length: 320 }, () => ({ x: Math.random() * PW, y: Math.random() * PH, v: .018 + Math.random() * .03, ph: Math.random() * 6.3, big: Math.random() < .3 }));
+const snowCv = document.createElement('canvas'); snowCv.width = PW; snowCv.height = PH;
+{ const g = snowCv.getContext('2d');
+  for (let y = 0; y < PH; y += 2) for (let x = 0; x < PW; x += 2) {          // soft drifts in 2px pixels
+    const n = Math.sin(x * .05 + y * .03) + Math.sin(x * .013 - y * .041) + (Math.random() - .5) * .8;
+    g.fillStyle = n > .9 ? '#ffffff' : n < -1.1 ? '#c8d4e6' : '#e8eef8'; g.fillRect(x, y, 2, 2);
+  }
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(outdoorMask, 0, 0); }
+function drawSnowGround(dt) {
+  snowCover = Math.max(0, Math.min(1, snowCover + (weather === 'snow' ? dt / 8000 : -dt / 20000)));
+  if (snowCover <= 0) return;
+  ctx.globalAlpha = .9 * snowCover; ctx.drawImage(snowCv, 0, 0); ctx.globalAlpha = 1;
+}
+function drawSnowfall(dt, now) {
+  rc.globalCompositeOperation = 'source-over'; rc.clearRect(0, 0, PW, PH);
+  rc.fillStyle = 'rgba(255,255,255,.9)';
+  for (const f of flakes) {
+    f.y += f.v * dt; f.x += Math.sin(now / 900 + f.ph) * .015 * dt - .008 * dt;
+    if (f.y > PH) { f.y = -4; f.x = Math.random() * (PW + 60); }
+    if (f.x < -4) f.x = PW + 2;
+    const k = f.big ? 2 : 1; rc.fillRect(Math.round(f.x), Math.round(f.y), k, k);
+  }
+  rc.globalCompositeOperation = 'destination-in'; rc.drawImage(outdoorMask, 0, 0);
+  ctx.drawImage(rainCv, 0, 0);
 }
 
 // ---- the dog: wanders between favourite spots, naps on its bed
@@ -502,7 +530,7 @@ function frame(now) {
     if (f.speed < .002 && !f.on) f.speed = 0;
     f.angle += f.speed * dt / 90;
   }
-  const anyOn = lights.some(l => l.level > 0) || fans.some(f => f.speed > 0) || dogMoving || weather !== 'clear' || garageDoors.some(garageAlert) || (dog && dog.napping);
+  const anyOn = lights.some(l => l.level > 0) || fans.some(f => f.speed > 0) || dogMoving || weather !== 'clear' || snowCover > 0 || garageDoors.some(garageAlert) || (dog && dog.napping);
   // repaint every frame while fading, ~12 fps for idle motion (chunky, retro)
   if (animating || (anyOn && now - lastPaint > 80) || now - lastPaint > 1000) { paint(now, now - lastPaint); lastPaint = now; }
   if (now - lastClock > 30000) { lastClock = now; if (!sel) { const st = side.querySelector('#skyst'); if (st) st.textContent = skyText(); } garageDoors.forEach(g => { if (!g.closed) render(); }); }
@@ -514,6 +542,7 @@ function paint(now, dt = 16) {
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(map, 0, 0);
   for (const cv of garageDoors) drawGarage(cv, now);
+  drawSnowGround(Math.min(100, dt));
   drawDog(now);
   for (const f of fans) drawFan(f);
   const amb = ambient(skyNow().elev);
@@ -552,7 +581,8 @@ function paint(now, dt = 16) {
     else for (const f of l.fx) drawBulb(f, l.level, now);
   }
   for (const cv of covers) if (cv.kind !== 'garage') drawBlinds(cv);
-  if (weather !== 'clear') drawRain(Math.min(100, dt));
+  if (weather === 'snow') drawSnowfall(Math.min(100, dt), now);
+  else if (weather !== 'clear') drawRain(Math.min(100, dt));
   for (const cv of garageDoors) if (garageAlert(cv)) drawGarage({ ...cv, level: 0 }, now);   // alert stays visible over the rain
   if (sel && focusMask) ctx.drawImage(focusMask, 0, 0);
   if (showLabels) drawLabels();
@@ -621,7 +651,7 @@ new ResizeObserver(applyCamera).observe(stage);
 function openRoom(id) {
   sel = id; focusMask = id ? buildFocus(id) : null;
   document.getElementById('crumb').style.display = id ? 'block' : 'none';
-  document.getElementById('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a room · hold to toggle its lights';
+  document.getElementById('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a light to toggle it, or a room to open it';
   applyCamera(); render(); paint(performance.now());
   try { history.replaceState(null, '', id ? '#' + id.replace(/_/g, '-') : location.pathname); } catch (e) {}
 }
@@ -633,16 +663,20 @@ function cellOf(ev) {
   return [(ev.clientX - rect.left) / rect.width * W, (ev.clientY - rect.top) / rect.height * H];
 }
 function deviceAt(x, y) {
-  for (const f of fans) {
+  const overview = !sel;
+  if (!overview) for (const f of fans) {               // fan blades vs hub is too fine to aim at on the overview
     if (devRoom(f) !== sel) continue;
     const dd = Math.hypot(f.x - x, f.y - y);
     if (dd > 1.1 && dd < 3.4) return { fan: f };
   }
-  let best = null, bd = 2.6;
-  for (const l of lights) { if (devRoom(l) !== sel) continue; for (const f of l.fx) { const dd = Math.hypot(f.x - x, f.y - y); if (dd < bd) { bd = dd; best = { light: l }; } } }
+  // on the overview a light's tap target is at least ~18 screen px across, so it works on a phone too
+  const cellPx = canvas.getBoundingClientRect().width / W;
+  let best = null, bd = overview ? Math.max(2, 9 / cellPx) : 2.6;
+  for (const l of lights) { if (!overview && devRoom(l) !== sel) continue; for (const f of l.fx) { const dd = Math.hypot(f.x - x, f.y - y); if (dd < bd) { bd = dd; best = { light: l }; } } }
   if (best) return best;
   for (const c of covers) {
-    if (devRoom(c) !== sel) continue;
+    if (overview && c.kind === 'garage') continue;      // never open the garage from a stray overview tap
+    if (!overview && devRoom(c) !== sel) continue;
     if (x >= c.c0 - 1 && x <= c.c1 + 2 && Math.abs(y - (c.row + .5)) < (c.kind === 'garage' ? 3.5 : 2.2)) return { cover: c };
   }
   return null;
@@ -667,9 +701,14 @@ canvas.addEventListener('pointerup', ev => {
   clearTimeout(press.timer);
   if (press.long) { press = null; return; }
   const [x, y] = cellOf(ev); press = null;
-  if (!sel) { const id = roomAt(x, y); if (id) openRoom(id); return; }
   const d = deviceAt(x, y);
-  if (d) { if (d.light) d.light.on = !d.light.on; if (d.fan) d.fan.on = !d.fan.on; if (d.cover) setCover(d.cover, !d.cover.closed); render(); return; }
+  if (d) {
+    if (d.light) d.light.on = !d.light.on; if (d.fan) d.fan.on = !d.fan.on; if (d.cover) setCover(d.cover, !d.cover.closed);
+    render();
+    if (!sel) { const it = d.light || d.cover; toast(`${it.name}: ${d.light ? (it.on ? 'on' : 'off') : it.closed ? 'closed' : 'open'}`); }
+    return;
+  }
+  if (!sel) { const id = roomAt(x, y); if (id) openRoom(id); return; }
   const id = roomAt(x, y);
   openRoom(id && id !== sel ? id : null);
 });
@@ -707,14 +746,14 @@ function housePanel() {
     <div class="list rooms">${rows}</div>
     <div class="row2"><label>Time <input id="clock" type="range" min="0" max="24" step="0.25" value="${clockMode === 'live' ? nowHour() : clockHour}"></label>
     <button id="live" aria-pressed="${clockMode === 'live'}">Live</button></div>
-    <div class="row2"><div class="seg">${['clear', 'rain', 'storm'].map(w => `<button aria-pressed="${weather === w}" data-weather="${w}">${w[0].toUpperCase() + w.slice(1)}</button>`).join('')}</div>
+    <div class="row2"><div class="seg">${['clear', 'rain', 'storm', 'snow'].map(w => `<button aria-pressed="${weather === w}" data-weather="${w}">${w[0].toUpperCase() + w.slice(1)}</button>`).join('')}</div>
     <label><input id="labels" type="checkbox" ${showLabels ? 'checked' : ''}> Labels</label></div>
-    <div class="note">Preview with sample state. In Home Assistant each control reads and sets the real device, the light follows sun.sun and rain follows your weather entity.</div>`;
+    <div class="note">Preview with sample state. In Home Assistant each control reads and sets the real device, the light follows sun.sun and rain and snow follow your weather entity.</div>`;
 }
 const nowHour = () => { const d = new Date(); return Math.round((d.getHours() + d.getMinutes() / 60) * 4) / 4; };
 function skyText() {
   const { date, elev } = skyNow();
-  return `${skyLabel(elev)}, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${weather === 'clear' ? '' : weather === 'rain' ? ', raining' : ', storming'}`;
+  return `${skyLabel(elev)}, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${weather === 'clear' ? '' : ({ rain: ', raining', storm: ', storming', snow: ', snowing' })[weather]}`;
 }
 function roomPanel(id) {
   const r = ROOMS.find(x => x.id === id), d = inRoom(id), k = countOn(id);
@@ -768,7 +807,7 @@ function bindPanel() {
 const SAMPLE = ['dining', 'kitchen', 'kitchen_counter', 'upper_cabinet', 'hall_accent', 'm_bedroom', 'porch', 'garage_front', 'master_fan_light', 'back_door', 'master_closet', 'kitchen_sink'];
 const tag = location.hash.slice(1), qs = new URLSearchParams(location.search);
 if (qs.has('t')) { clockMode = 'set'; clockHour = +qs.get('t'); }
-if (qs.has('weather')) weather = qs.get('weather');
+if (qs.has('weather')) { weather = qs.get('weather'); if (weather === 'snow') snowCover = 1; }
 if (qs.has('garage')) garageDoors.forEach(g => { g.closed = false; g.level = 1; g.openSince = Date.now() - +qs.get('garage') * 60000; });
 if (qs.has('dog') && dog) { const [x, y] = qs.get('dog').split(',').map(Number); Object.assign(dog, { x, y, napping: false, wait: 0 }); }
 if (tag === 'all-on') lights.forEach(l => { l.on = true; l.level = 1; });
