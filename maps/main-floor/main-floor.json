@@ -274,7 +274,7 @@
   {
    "id": "mud_room",
    "name": "Mud room",
-   "floor": "tile_check",
+   "floor": "flagstone",
    "rects": [
     [
      83,

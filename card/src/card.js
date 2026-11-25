@@ -47,6 +47,7 @@ class PixelHouseCard extends HTMLElement {
     this._first = true; this._seen = null;
     this._api = mountHouse(root, { CONFIG, LAYOUT: base.LAYOUT, MAP_SRC: base.MAP_SRC }, {
       demo: false,
+      theme: this._config.theme,
       call: (domain, service, data) => this._hass && this._hass.callService(domain, service, data),
     });
   }

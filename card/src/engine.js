@@ -308,7 +308,17 @@ function drawDog(now) {
 }
 
 const map = new Image();
-map.src = MAP_SRC;
+// MAP_SRC is one image, or {theme: image} for switchable art. The pick is remembered on this device.
+const MAPS = typeof MAP_SRC === 'string' ? { classic: MAP_SRC } : MAP_SRC;
+const THEME_KEY = 'pixel-house-theme';
+let theme = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
+if (!MAPS[theme]) theme = MAPS[bridge.theme] ? bridge.theme : Object.keys(MAPS)[0];
+map.src = MAPS[theme];
+function setTheme(t) {
+  if (!MAPS[t] || t === theme) return;
+  theme = t; try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+  map.src = MAPS[t]; render();
+}
 
 // four-blade ceiling fan; motion-blur ring when spinning fast
 function drawFan(f) {
@@ -592,7 +602,6 @@ new ResizeObserver(applyCamera).observe(stage);
 function openRoom(id) {
   sel = id; focusMask = id ? buildFocus(id) : null;
   $id('crumb').style.display = id ? 'block' : 'none';
-  $id('hint').textContent = id ? 'Tap outside the room to go back' : 'Tap a light to toggle it, or a room to open it';
   applyCamera(); render(); paint(performance.now());
   bridge.onRoom?.(id);
 }
@@ -683,8 +692,9 @@ function housePanel() {
     return `<button class="room${k || gd ? ' lit' : ''}${gd && garageAlert(gd) ? ' warn' : ''}" data-room="${r.id}"><span>${r.name}</span><span class="st">${st} &rsaquo;</span></button>`;
   }).join('');
   const alerts = garageDoors.filter(garageAlert).map(g => `<div class="alert"><span>${g.name} open ${openMins(g)} min</span><button data-cover="${g.id}" data-v="close">Close</button></div>`).join('');
+  const themes = Object.keys(MAPS).length > 1 ? `<div class="seg theme" role="group" aria-label="Map style">${Object.keys(MAPS).map(t => `<button aria-pressed="${t === theme}" data-theme="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>` : '';
   return `${alerts}<div class="top"><div><h1>Main floor</h1><div class="sub">${on} of ${lights.length} lights on · <span id="skyst">${skyText()}</span></div></div>
-</div>
+${themes}</div>
     <div class="list rooms">${rows}</div>
     ${bridge.demo ? `<div class="row2"><label>Time <input id="clock" type="range" min="0" max="24" step="0.25" value="${clockMode === 'live' ? nowHour() : clockHour}"></label>
     <button id="live" aria-pressed="${clockMode === 'live'}">Live</button></div>
@@ -744,6 +754,7 @@ function bindPanel() {
   });
   $('[data-skip]').forEach(b => b.onclick = () => { const c = covers.find(x => x.id === b.dataset.skip); c.openSince -= (c.alert_after_min ?? 35) * 60000; render(); });
   $('[data-weather]').forEach(b => b.onclick = () => { weather = b.dataset.weather; render(); });
+  $('[data-theme]').forEach(b => b.onclick = () => setTheme(b.dataset.theme));
   const ck = side.querySelector('#clock'); if (ck) ck.oninput = e => { clockMode = 'set'; clockHour = +e.target.value; side.querySelector('#skyst').textContent = skyText(); side.querySelector('#live').setAttribute('aria-pressed', 'false'); paint(performance.now()); };
   const lv = side.querySelector('#live'); if (lv) lv.onclick = () => { clockMode = 'live'; render(); };
   const setColor = (id, v, send) => { const l = lights.find(x => x.id === id); l.color = [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); l.tint = `rgb(${l.color})`; l.on = true; if (send) act('light', l, true, { rgb_color: l.color }); };
@@ -794,7 +805,8 @@ const api = {
 // ---- boot: the bridge seeds state (sample data in the preview, live states in HA)
 bridge.init?.(api);
 render();
-map.onload = () => { openRoom(bridge.startRoom && ROOMS.some(r => r.id === bridge.startRoom) ? bridge.startRoom : null); };
+let booted = false;
+map.onload = () => { if (booted) return paint(performance.now()); booted = true; openRoom(bridge.startRoom && ROOMS.some(r => r.id === bridge.startRoom) ? bridge.startRoom : null); };
 raf = requestAnimationFrame(frame);
 return api;
 }

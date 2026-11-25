@@ -15,6 +15,12 @@ srv.listen(0, async () => {
   ok((await sh('.room').count()) >= 8, 'house panel lists rooms');
   ok(/Kitchen|Living/.test(await sh('.side').innerText()), 'living/kitchen room shown');
   await p.screenshot({ path: `${OUT}/card-house.png` });
+  ok(await sh('[data-theme]').count() === 2 && !(await sh('.hint').count()), 'theme toggle shown, no hint banner');
+  ok(await sh('[data-room="living"]').innerText().then(t => /Living & hall/.test(t)) && await sh('[data-room="kitchen"]').innerText().then(t => /Kitchen & dining/.test(t)), 'living+hall and kitchen+dining rooms');
+  await sh('[data-theme="classic"]').click(); await p.waitForTimeout(500);
+  ok(await p.evaluate(() => localStorage.getItem('pixel-house-theme')) === 'classic', 'theme pick remembered');
+  await p.screenshot({ path: `${OUT}/card-house-classic.png` });
+  await sh('[data-theme="adventure"]').click(); await p.waitForTimeout(500);
   // overview tap on the kitchen light -> switch.kitchen_light off (it starts on)
   const box = await sh('canvas').boundingBox();
   const at = (x, y) => p.mouse.click(box.x + x / 111 * box.width, box.y + y / 88 * box.height);
@@ -38,7 +44,7 @@ srv.listen(0, async () => {
   await p.screenshot({ path: `${OUT}/card-master.png` });
   // unavailable device: sink light can't be toggled
   await sh('#back').click(); await p.waitForTimeout(500);
-  await sh('[data-room="living"]').click(); await p.waitForTimeout(600);
+  await sh('[data-room="kitchen"]').click(); await p.waitForTimeout(600);
   const n0 = (await p.evaluate('window.calls')).length;
   ok((await sh('.dev.na').count()) >= 1, 'sink light shows unavailable');
   await sh('[data-light="kitchen_sink"]').click({ force: true }).catch(() => {}); await p.waitForTimeout(200);

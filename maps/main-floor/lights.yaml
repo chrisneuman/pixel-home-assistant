@@ -12,8 +12,9 @@ layout: main-floor.json
 # Tap targets for the room view. Each groups one or more layout rooms (from main-floor.json);
 # "outside" covers the front porch, yard, deck and driveway.
 rooms:
-  # open plan: living, dining and kitchen act as one room, with the hall, foyer and accent strip
-  - {id: living,      name: "Living, kitchen & dining", includes: [living, stairs, dining, kitchen, hall, front_closet]}
+  # chris (2026-11-25): living + hall zoom together, kitchen + dining zoom together
+  - {id: living,      name: "Living & hall",    includes: [living, stairs, hall, front_closet]}
+  - {id: kitchen,     name: "Kitchen & dining", includes: [dining, kitchen]}
   - {id: master,      name: Master,       includes: [master, master_closet]}
   - {id: master_bath, name: Master bath,  includes: [master_bath]}
   - {id: main_bath,   name: Main bath,    includes: [main_bath]}

@@ -8,12 +8,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'card', 'src')
 rd = lambda *p: open(os.path.join(*p), encoding='utf-8').read()
 
+def png(path):
+    return 'data:image/png;base64,' + base64.b64encode(open(path, 'rb').read()).decode()
+
 def floor(name):
     d = os.path.join(ROOT, 'maps', f'{name}-floor')
     return {
         'CONFIG': yaml.safe_load(rd(d, 'lights.yaml')),
         'LAYOUT': json.loads(rd(d, f'{name}-floor.json')),
-        'MAP_SRC': 'data:image/png;base64,' + base64.b64encode(open(os.path.join(d, f'{name}-floor.png'), 'rb').read()).decode(),
+        # theme -> map art; the first one is the default
+        'MAP_SRC': {t: png(os.path.join(d, f'{name}-floor{sfx}.png')) for t, sfx in (('adventure', '-adventure'), ('classic', ''))
+                    if os.path.exists(os.path.join(d, f'{name}-floor{sfx}.png'))},
     }
 
 def version():
