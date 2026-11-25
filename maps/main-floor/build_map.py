@@ -5,8 +5,7 @@ Outputs (next to this script):
   main-floor.png   base art, 8 px per cell, all lights drawn as "off" fixtures
   main-floor.json  tile grid + room rectangles (used by the card for glow clipping and labels)
 
-Run:  python3 build_map.py               # classic look -> main-floor.png
-      THEME=adventure python3 build_map.py  # 16-bit adventure look -> main-floor-adventure.png
+Run:  python3 build_map.py
 """
 import json, os, random
 from PIL import Image, ImageDraw
@@ -14,8 +13,6 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H = 111, 88          # cells
 CELL = 8                 # art pixels per cell
-THEME = os.environ.get('THEME', 'classic')
-ADV = THEME == 'adventure'
 
 # ---------------------------------------------------------------- layout
 # tile codes: '.' grass, '#' wall, ' ' floor, 'D' door, 'F' front door,
@@ -39,7 +36,7 @@ ROOMS = [  # id, label, floor material, rects (c0, r0, c1, r1) inclusive
     ("kitchen",       "Kitchen",       "wood",        [(81, 5, 105, 21)]),
     ("hall",          "Hall",          "wood",        [(28, 38, 59, 40), (23, 41, 32, 51), (51, 41, 59, 53)]),
     ("stairs",        "Stairs",        "darkwood",    [(60, 28, 81, 34), (80, 23, 81, 27)]),
-    ("mud_room",      "Mud room",      "flagstone" if ADV else "tile_check",  [(83, 23, 105, 34)]),
+    ("mud_room",      "Mud room",      "tile_check",  [(83, 23, 105, 34)]),
     ("garage",        "Garage",        "concrete",    [(61, 36, 104, 74)]),
     ("g_room",        "G room",        "carpet_pink", [(5, 53, 28, 68)]),
     ("g_closet",      "G room closet", "darkwood",    [(5, 50, 21, 51)]),
@@ -119,22 +116,6 @@ PAL = dict(
     drive=(150, 146, 140), drive_d=(132, 128, 124),
     door=(150, 100, 54), door_d=(110, 70, 36), outline=(30, 24, 34),
 )
-if ADV:  # 16-bit adventure look: near-black walls, deep warm wood, saturated grass, teal bath tile
-    PAL.update(
-        grass=(72, 176, 56), grass_d=(36, 124, 44), grass_l=(136, 216, 88),
-        wall=(34, 30, 38), wall_top=(96, 90, 104), wall_d=(12, 10, 16),
-        face=(120, 72, 44), face_d=(96, 56, 34), face_l=(150, 96, 60), base=(60, 36, 24),
-        wood=(156, 88, 46), wood_d=(78, 42, 22), wood_l=(186, 116, 64),
-        dwood=(120, 72, 40), dwood_d=(82, 48, 26),
-        carpet_tan=(216, 168, 104), carpet_tan_d=(200, 152, 92),
-        carpet_pink=(214, 112, 112), carpet_pink_d=(196, 96, 98),
-        carpet_blue=(140, 130, 210), carpet_blue_d=(124, 114, 192),
-        tile_blue=(104, 196, 168), tile_blue_d=(64, 150, 128),
-        concrete=(176, 176, 172), concrete_d=(150, 150, 148), concrete_l=(190, 190, 186),
-        stone=(150, 150, 146), stone_d=(92, 92, 92),
-        drive=(150, 150, 150), drive_d=(112, 112, 116),
-        door=(132, 76, 40), door_d=(80, 44, 22), outline=(16, 12, 20),
-    )
 
 rng = random.Random(42)
 img = Image.new('RGB', (W * CELL, H * CELL), PAL['grass'])
@@ -145,17 +126,6 @@ def h(x, y, s=0):
     return ((x * 73856093) ^ (y * 19349663) ^ (s * 83492791)) & 0xffff
 
 def floor_px(mat, x, y):
-    if mat == 'wood' and ADV:  # wide planks, dark seams, knots
-        row = y // 8
-        if y % 8 == 7: return PAL['wood_d']
-        off = (h(row, 0, 19) % 6) * 16
-        L = 96
-        if (x + off) % L == 0: return (104, 56, 30)
-        if y % 8 == 0: return PAL['wood_l']
-        k = h((x + off) // L, row, 4) % 5
-        if k == 0 and abs((x + off) % L - 40) < 2 and y % 8 in (3, 4): return PAL['wood_d']   # knot
-        if y % 8 in (2, 5) and h(x // 7, row * 3 + y % 8, 2) % 3 == 0: return (138, 76, 40)    # grain streaks
-        return [(156, 88, 46), (146, 82, 44), (166, 98, 54)][h((x + off) // L, row, 3) % 3]
     if mat == 'wood':  # horizontal planks, staggered seams
         row = y // 6
         if y % 6 == 5: return PAL['wood_d']
@@ -193,14 +163,6 @@ def floor_px(mat, x, y):
         if x % 48 == 0 or y % 48 == 0: return PAL['stone_d']
         v = h(x, y, 5) % 31
         return PAL['stone_d'] if v == 0 else (204, 198, 186) if v == 1 else (190, 184, 172)
-    if mat == 'flagstone':                       # irregular grey stones with dark grout
-        cx, cy = x // 14, y // 11
-        ox = (h(cx, cy, 21) % 5) - 2; oy = (h(cx, cy, 22) % 4) - 2
-        if (x + ox) % 14 in (0, 13) or (y + oy + (cx % 2) * 5) % 11 in (0, 10): return (70, 70, 74)
-        v = h(cx, cy, 23) % 3
-        base = [(150, 150, 146), (136, 138, 136), (162, 160, 154)][v]
-        if (x + ox) % 14 == 1 or (y + oy + (cx % 2) * 5) % 11 == 1: return tuple(min(255, c + 22) for c in base)
-        return base
     if mat == 'stone':
         row = y // 8; off = 6 if row % 2 else 0
         if y % 8 == 0 or (x + off) % 12 == 0: return PAL['stone_d']
@@ -277,7 +239,7 @@ for r in range(H):
         x0, y0 = c * CELL, r * CELL
         if t == '#':
             d.rectangle([x0, y0, x0 + 7, y0 + 7], fill=PAL['wall'])
-            if (c + r) % 2 == 0 and not ADV: d.point([(x0 + 3, y0 + 3), (x0 + 5, y0 + 5)], fill=(104, 82, 110))
+            if (c + r) % 2 == 0: d.point([(x0 + 3, y0 + 3), (x0 + 5, y0 + 5)], fill=(104, 82, 110))
             if not is_wallish(c, r - 1): d.line([x0, y0, x0 + 7, y0], fill=PAL['wall_d']); d.line([x0, y0 + 1, x0 + 7, y0 + 1], fill=PAL['wall_top'])
             if not is_wallish(c, r + 1): d.line([x0, y0 + 7, x0 + 7, y0 + 7], fill=PAL['wall_d'])
             if not is_wallish(c - 1, r): d.line([x0, y0, x0, y0 + 7], fill=PAL['wall_d'])
@@ -412,33 +374,10 @@ def bed(c0, r0, c1, r1, blanket, blanket_d):
 
 def rug(c0, r0, c1, r1, col, border):
     d = dbase                                                            # rugs lie flat: no shadow
-    if ADV: return ornate_rug(c0, r0, c1, r1, col, border)
     d.rectangle([P(c0), P(r0), P(c1) - 1, P(r1) - 1], fill=border)
     d.rectangle([P(c0) + 3, P(r0) + 3, P(c1) - 4, P(r1) - 4], fill=col)
     for y in range(P(r0) + 5, P(r1) - 5, 6):
         d.line([P(c0) + 5, y, P(c1) - 6, y], fill=border)
-
-def ornate_rug(c0, r0, c1, r1, col, border, emblem=(236, 186, 60)):
-    """Woven rug: fringe, double border with a zigzag band, a gold diamond medallion."""
-    dd = dbase
-    x0, y0, x1, y1 = P(c0), P(r0), P(c1) - 1, P(r1) - 1
-    dk = tuple(int(v * .7) for v in col)
-    dd.rectangle([x0, y0, x1, y1], fill=border, outline=PAL['outline'])
-    for x in range(x0 + 1, x1, 2):                                       # fringe
-        dd.point([(x, y0 - 1), (x, y1 + 1)], fill=(236, 224, 196))
-    dd.rectangle([x0 + 3, y0 + 3, x1 - 3, y1 - 3], fill=dk)
-    for x in range(x0 + 4, x1 - 3, 4):                                   # zigzag band
-        dd.point([(x, y0 + 4), (x + 2, y0 + 5), (x, y1 - 4), (x + 2, y1 - 5)], fill=border)
-    for y in range(y0 + 4, y1 - 3, 4):
-        dd.point([(x0 + 4, y), (x0 + 5, y + 2), (x1 - 4, y), (x1 - 5, y + 2)], fill=border)
-    dd.rectangle([x0 + 7, y0 + 7, x1 - 7, y1 - 7], fill=col)
-    cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-    rx, ry = min(14, (x1 - x0) // 4), min(14, (y1 - y0) // 4)
-    dd.polygon([(cx, cy - ry), (cx + rx, cy), (cx, cy + ry), (cx - rx, cy)], fill=emblem, outline=dk)
-    dd.polygon([(cx, cy - ry // 2), (cx + rx // 2, cy), (cx, cy + ry // 2), (cx - rx // 2, cy)], fill=col)
-    dd.rectangle([cx - 1, cy - 1, cx + 1, cy + 1], fill=emblem)
-    for (ex, ey) in [(x0 + 11, y0 + 11), (x1 - 11, y0 + 11), (x0 + 11, y1 - 11), (x1 - 11, y1 - 11)]:
-        dd.polygon([(ex, ey - 3), (ex + 3, ey), (ex, ey + 3), (ex - 3, ey)], fill=emblem)
 
 def plant(c, r):
     d.ellipse([P(c) - 6, P(r) - 6, P(c) + 6, P(r) + 6], fill=(56, 122, 64), outline=PAL['outline'])
@@ -733,10 +672,9 @@ def mushroom(c, r):
 # living room
 rug(37, 12, 46, 24, (176, 74, 66), (226, 190, 120))
 box(34, 13.5, 35, 22.5, (32, 32, 40), hi=(80, 80, 96))                  # wall TV
-SOFA = ((196, 110, 54), (244, 150, 84), (150, 78, 36)) if ADV else ((220, 150, 40), (244, 190, 90), (190, 120, 30))
-box(47.5, 11, 53, 27, SOFA[0], hi=SOFA[1])                # sofa, 3 ft off the wall to the stairs
-box(51.3, 11, 53, 27, SOFA[2])
-box(47.5, 11, 53, 12.4, SOFA[2]); box(47.5, 25.6, 53, 27, SOFA[2])
+box(47.5, 11, 53, 27, (220, 150, 40), hi=(244, 190, 90))                # sofa, 3 ft off the wall to the stairs
+box(51.3, 11, 53, 27, (190, 120, 30))
+box(47.5, 11, 53, 12.4, (190, 120, 30)); box(47.5, 25.6, 53, 27, (190, 120, 30))
 for y in (12.4, 16.8, 21.2):                                              # seat cushions
     d.line([P(47.5) + 1, P(y + 4.4), P(51.3) - 1, P(y + 4.4)], fill=(176, 108, 28))
 # green armchair facing the TV
@@ -892,65 +830,6 @@ for c in range(26, 37, 4):
 for c in (45, 49):
     bush(c, 82)
 
-# ---------------------------------------------------------------- adventure props
-def pot(c, r, col=(178, 102, 58)):
-    """Round clay pot with a dark mouth."""
-    x, y = P(c), P(r); dk = tuple(int(v * .66) for v in col); lt = tuple(min(255, v + 40) for v in col)
-    d.ellipse([x - 7, y - 6, x + 7, y + 8], fill=col, outline=PAL['outline'])
-    d.ellipse([x - 4, y - 7, x + 4, y - 2], fill=dk, outline=PAL['outline'])
-    d.ellipse([x - 3, y - 6, x + 3, y - 3], fill=(40, 24, 16))
-    d.line([x - 5, y + 1, x - 5, y + 4], fill=lt); d.line([x - 6, y + 3, x + 6, y + 3], fill=dk)
-def barrel(c, r):
-    x, y = P(c), P(r)
-    d.ellipse([x - 9, y - 9, x + 9, y + 9], fill=(132, 82, 44), outline=PAL['outline'])
-    d.ellipse([x - 7, y - 7, x + 7, y + 7], fill=(160, 104, 58))
-    for k in (-4, 0, 4): d.line([x + k, y - 6, x + k, y + 6], fill=(118, 72, 38))
-    d.ellipse([x - 9, y - 9, x + 9, y + 9], outline=(90, 90, 96))
-    d.ellipse([x - 5, y - 5, x + 5, y + 5], outline=(90, 90, 96))
-def crate(c, r, w=2.6):
-    x0, y0, x1, y1 = P(c), P(r), P(c + w) - 1, P(r + w) - 1
-    d.rectangle([x0, y0, x1, y1], fill=(170, 116, 64), outline=PAL['outline'])
-    d.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], outline=(120, 78, 40))
-    d.line([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=(120, 78, 40), width=2); d.line([x0 + 2, y1 - 2, x1 - 2, y0 + 2], fill=(120, 78, 40), width=2)
-def chest(c0, r0, c1, r1):
-    x0, y0, x1, y1 = P(c0), P(r0), P(c1) - 1, P(r1) - 1
-    d.rectangle([x0, y0, x1, y1], fill=(150, 92, 44), outline=PAL['outline'])
-    d.rectangle([x0 + 1, y0 + 1, x1 - 1, y0 + (y1 - y0) // 2], fill=(176, 112, 56))
-    d.line([x0, y0 + (y1 - y0) // 2, x1, y0 + (y1 - y0) // 2], fill=PAL['outline'])
-    for x in (x0 + 3, x1 - 3): d.line([x, y0, x, y1], fill=(220, 180, 70), width=2)
-    cx = (x0 + x1) // 2; my = y0 + (y1 - y0) // 2
-    d.rectangle([cx - 2, my - 2, cx + 2, my + 3], fill=(236, 200, 80), outline=PAL['outline'])
-def potion(c, r, col):
-    x, y = P(c), P(r)
-    d.ellipse([x - 3, y - 2, x + 3, y + 4], fill=col, outline=PAL['outline'])
-    d.rectangle([x - 1, y - 5, x + 1, y - 2], fill=(220, 230, 236), outline=PAL['outline'])
-    d.point((x - 1, y), fill=(255, 255, 255))
-def canopy(c0, r0, c1, r1, drape=(186, 40, 48)):
-    """Four-poster posts with red curtains tied back at the foot of the bed."""
-    for (x, y) in [(P(c0), P(r0)), (P(c1) - 3, P(r0)), (P(c0), P(r1) - 3), (P(c1) - 3, P(r1) - 3)]:
-        d.rectangle([x, y, x + 3, y + 3], fill=(96, 56, 30), outline=PAL['outline'])
-    dk = tuple(int(v * .7) for v in drape)
-    for y0, sgn in ((P(r0) + 4, 1), (P(r1) - 5, -1)):
-        pts = [(P(c0) + 1, y0), (P(c0) + 14, y0), (P(c0) + 6, y0 + sgn * 18), (P(c0) + 1, y0 + sgn * 22)]
-        d.polygon(pts, fill=drape, outline=PAL['outline'])
-        d.line([P(c0) + 4, y0 + sgn * 2, P(c0) + 3, y0 + sgn * 18], fill=dk)
-        d.rectangle([P(c0) + 3, y0 + sgn * 11 - 1, P(c0) + 9, y0 + sgn * 11 + 1], fill=(236, 196, 80))
-
-if ADV:
-    ornate_rug(18, 9.6, 32.4, 26.4, (176, 44, 52), (64, 84, 150))                  # master: big rug under the bed
-    ornate_rug(89, 15.5, 100, 20.5, (176, 60, 44), (226, 170, 90))                 # kitchen runner
-    ornate_rug(53, 42, 58, 52, (176, 60, 44), (226, 170, 90))                      # entry rug
-    canopy(21, 12, 33, 24)
-    for (c, r) in [(36.5, 34), (39, 34.4), (58.5, 9.6)]: pot(c, r)                 # living corners
-    pot(78, 24.5, (160, 92, 52)); pot(76.3, 25.2)                                  # dining nook
-    for (c, r, col) in [(83.2, 6.2, (90, 190, 90)), (84.6, 6.4, (200, 80, 200)), (103.2, 19.5, (90, 140, 230)), (104.6, 20.2, (220, 70, 70))]:
-        potion(c, r, col)                                                          # bottles on the counters
-    for (c, r) in [(64.5, 41), (67.5, 42.5), (64.5, 45.5)]: barrel(c, r)           # garage
-    crate(70, 39.6); crate(62.5, 48.5)
-    chest(34, 71, 37.6, 73.4)                                                      # porch
-    pot(23.5, 33.5, (150, 96, 60))                                                 # front closet
-    potion(103, 28.6, (120, 220, 200))                                             # mud room shelf
-
 # composite: drop shadow (down-right), then the furniture layer
 alpha = layer.split()[3].point(lambda a: 96 if a > 0 else 0)
 shadow = Image.new('RGBA', img.size, (22, 10, 40, 0))
@@ -959,7 +838,7 @@ shadow.paste((22, 10, 40, 255), (3, 4), alpha.crop((0, 0, img.width - 3, img.hei
 sh_alpha = Image.new('L', img.size, 0); sh_alpha.paste(alpha.crop((0, 0, img.width - 3, img.height - 4)), (3, 4))
 shadow.putalpha(sh_alpha)
 img = Image.alpha_composite(Image.alpha_composite(img.convert('RGBA'), shadow), layer).convert('RGB')
-img.save(os.path.join(HERE, 'main-floor-adventure.png' if ADV else 'main-floor.png'))
+img.save(os.path.join(HERE, 'main-floor.png'))
 with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
     json.dump({
         "cell_px": CELL, "cell_feet": 0.5, "width": W, "height": H,
@@ -970,4 +849,4 @@ with open(os.path.join(HERE, 'main-floor.json'), 'w') as f:
         "rooms": [{"id": rid, "name": name, "floor": mat, "rects": rects}
                   for rid, name, mat, rects in ROOMS],
     }, f, indent=1)
-print('wrote', THEME, img.size)
+print('wrote main-floor.png', img.size)
