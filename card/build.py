@@ -19,6 +19,9 @@ def floor(name):
         # theme -> map art; the first one is the default
         'MAP_SRC': {t: png(os.path.join(d, f'{name}-floor{sfx}.png')) for t, sfx in (('adventure', '-adventure'), ('classic', ''))
                     if os.path.exists(os.path.join(d, f'{name}-floor{sfx}.png'))},
+        # theme -> sprite atlas for the live dog, cat and fans (themes without one use the drawn sprites)
+        'SPRITES': {t: png(os.path.join(d, 'art', f'sprites-{t}.png')) for t in ('adventure',)
+                    if os.path.exists(os.path.join(d, 'art', f'sprites-{t}.png'))},
     }
 
 def version():

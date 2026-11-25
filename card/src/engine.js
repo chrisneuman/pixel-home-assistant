@@ -1,7 +1,7 @@
 // Pixel house engine: the map renderer + room UI, shared by the HA card and the offline preview.
 // mountHouse(root, {CONFIG, LAYOUT, MAP_SRC}, bridge) draws into `root` (a shadow root).
 // bridge: { demo, startRoom, init(api), call(domain, service, data), onRoom(id) }
-export function mountHouse(root, { CONFIG, LAYOUT, MAP_SRC }, bridge = {}) {
+export function mountHouse(root, { CONFIG, LAYOUT, MAP_SRC, SPRITES = {} }, bridge = {}) {
 const $id = id => root.querySelector('#' + id);
 let stopped = false;
 function act(kind, dev, on, extra) {                    // a user action: ask HA to do it
@@ -281,16 +281,45 @@ function moveDog(dt) {
   }
   const p = dog.path[0], dx = p.x - dog.x, dy = p.y - dog.y, d = Math.hypot(dx, dy), v = .0045 * dt;  // ~4.5 cells/s, a trot
   if (Math.abs(dx) > .05) dog.face = dx > 0 ? 1 : -1;
+  if (d > .01) dog.dir = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? 'down' : 'up') : 'side';
   dog.step += dt;
   if (d <= v) { dog.x = p.x; dog.y = p.y; dog.path.shift(); if (!dog.path.length) dog.napping = dog.home || Math.random() < .5; }
   else { dog.x += dx / d * v; dog.y += dy / d * v; }
   return true;
+}
+// themed sprite atlas (sheet 5 coordinates at 2x): rows of frames, see maps/main-floor/art/sheets
+const SHEETS = {};
+for (const t in SPRITES) { SHEETS[t] = new Image(); SHEETS[t].src = SPRITES[t]; }
+const sheet = () => { const s = SHEETS[theme]; return s && s.complete && s.naturalWidth ? s : null; };
+const ROW = { down: [20, 4], up: [88, 4], side: [156, 4], nap: [224, 2], catSit: [360, 2], catNap: [412, 2], fan: [464, 4] };
+function spr(s, row, k, size, stride, dx, dy, scale = 1, flip = false) {
+  const [y0, n] = ROW[row], sx = 20 + (k % n) * stride, w = size * scale;
+  ctx.save(); ctx.translate(dx, dy); if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(s, sx, y0, size, size, -w / 2, -w / 2, w, w);
+  ctx.restore();
+}
+const CAT = CONFIG.cat;                                    // a cat that naps, and sometimes sits up (sprite themes only)
+function drawCat(now) {
+  const s = sheet(); if (!s || !CAT) return;
+  const t = now % 40000, sit = t > 30000;
+  spr(s, sit ? 'catSit' : 'catNap', Math.floor(now / (sit ? 700 : 1400)), 32, 52, CAT.x * CELL, CAT.y * CELL);
 }
 function drawDog(now) {
   if (!dog) return;
   const x = Math.round(dog.x * CELL), y = Math.round(dog.y * CELL);
   ctx.fillStyle = 'rgba(20,12,24,.28)';
   ctx.fillRect(x - 14, y + 8, 28, 4); ctx.fillRect(x - 11, y + 12, 22, 2);
+  const s = sheet();
+  if (s) {
+    if (dog.napping || !dog.path.length) spr(s, 'nap', Math.floor(now / 900), 48, 68, x, y - 2);
+    else spr(s, dog.dir || 'side', Math.floor(dog.step / 120), 48, 68, x, y - 6, 1, (dog.dir || 'side') === 'side' && dog.face > 0);
+    if (dog.napping) {
+      const t = (now / 900) % 3;
+      ctx.fillStyle = 'rgba(255,248,220,.85)'; ctx.font = 'bold 7px ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText('z', x + 14 + (t | 0), y - 12 - (t * 4 | 0));
+    }
+    return;
+  }
   if (dog.napping || !dog.path.length) {
     ctx.drawImage(dogNap, x - (dogNap.width >> 1), y - (dogNap.height >> 1) - 2);
     if (dog.napping) {                                     // floating z's
@@ -322,6 +351,11 @@ function setTheme(t) {
 
 // four-blade ceiling fan; motion-blur ring when spinning fast
 function drawFan(f) {
+  const s = sheet();
+  if (s) {                                                // 5 blades: 4 frames of 18 degrees cover a full turn
+    if (f.speed > .6) { ctx.fillStyle = 'rgba(120,80,40,.18)'; ctx.beginPath(); ctx.arc(f.x * CELL, f.y * CELL, 20, 0, Math.PI * 2); ctx.fill(); }
+    return spr(s, 'fan', Math.floor(f.angle / (Math.PI / 10)), 80, 100, f.x * CELL, f.y * CELL, .5);
+  }
   const cx = f.x * CELL, cy = f.y * CELL, len = 22, w = 4;
   const blade = f.blade || [70, 52, 44];
   if (f.speed > .6) {
@@ -492,6 +526,7 @@ function paint(now, dt = 16) {
   ctx.drawImage(map, 0, 0);
   for (const cv of garageDoors) drawGarage(cv, now);
   drawSnowGround(Math.min(100, dt));
+  drawCat(now);
   drawDog(now);
   for (const f of fans) drawFan(f);
   const amb = ambient(skyNow().elev);

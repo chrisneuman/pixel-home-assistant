@@ -45,7 +45,7 @@ class PixelHouseCard extends HTMLElement {
     const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>${CSS}</style><ha-card>${MARKUP}</ha-card>`;
     this._first = true; this._seen = null;
-    this._api = mountHouse(root, { CONFIG, LAYOUT: base.LAYOUT, MAP_SRC: base.MAP_SRC }, {
+    this._api = mountHouse(root, { CONFIG, LAYOUT: base.LAYOUT, MAP_SRC: base.MAP_SRC, SPRITES: base.SPRITES }, {
       demo: false,
       theme: this._config.theme,
       call: (domain, service, data) => this._hass && this._hass.callService(domain, service, data),

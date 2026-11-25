@@ -280,3 +280,6 @@ dog:
     - {x: 40, y: 56}     # M's room
     - {x: 22, y: 58}     # G's room
     - {x: 26, y: 24}     # foot of the master bed
+
+# a cat napping on the green armchair (drawn only in themes with a sprite sheet)
+cat: {x: 43.3, y: 27.6}
